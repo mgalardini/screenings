@@ -1,0 +1,111 @@
+#!/usr/bin/env python
+
+# Copyright (C) <2015> EMBL-European Bioinformatics Institute
+
+# This program is free software: you can redistribute it and/or
+# modify it under the terms of the GNU General Public License as
+# published by the Free Software Foundation, either version 3 of
+# the License, or (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+
+# Neither the institution name nor the name screenings can
+# be used to endorse or promote products derived from this
+# software without prior written permission. For written
+# permission, please contact <marco@ebi.ac.uk>.
+
+# Products derived from this software may not be called
+# screenings nor may screenings appear in their names
+# without prior written permission of the developers.
+# You should have received a copy of the GNU General Public
+# License along with this program. If not, see
+# <http://www.gnu.org/licenses/>.
+
+__author__ = "Marco Galardini"
+__version__ = "0.0.1"
+
+def get_options():
+    import argparse
+
+    # create the top-level parser
+    description = "Correct an Iris file"
+    parser = argparse.ArgumentParser(description = description,
+                                     prog = 'fix_iris')
+    parser.add_argument('irisfile', action='store',
+                        help='Iris data file')
+    parser.add_argument('platefile', action='store',
+                        help='Plate information file')
+    parser.add_argument('odir', action='store',
+                        help='Output directory')
+
+    parser.add_argument('--circularity', action='store',
+                default=0.5,
+                type=float,
+                help='Circularity threshold [Default: 0.5]')
+    parser.add_argument('--size', action='store',
+                type=float,
+                default=1200,
+                help='Size threshold: colonies bigger than this won\'t'+
+                ' be checked for circularity [Default: 1200]')
+    
+    parser.add_argument('--ignore', action='store',
+                        dest='ignore',
+                        default=None,
+                help='File name with positions to ignore (row column)')
+
+    parser.add_argument('--variance', action='store',
+                default=0.9,
+                type=float,
+                help='Remove replica that contribute at least to this fractio'+
+                'n of the total variance [Default: 0.5]')
+    
+    parser.add_argument('--version', action='version',
+                         version='%(prog)s '+__version__)
+
+    return parser.parse_args()
+
+if __name__ == "__main__":
+    import os
+    import screenings as sc
+
+    options = get_options()
+
+    m = sc.parse_iris(options.irisfile,
+            options.platefile)
+    header = sc.get_header(options.irisfile) 
+
+    # Fix circularity
+    m = sc.fix_circularity(m,
+            options.circularity,
+            options.size)
+
+    # Ignore some colonies
+    ignore = set()
+    if options.ignore is not None:
+        for l in open(options.ignore):
+            row, column = l.strip().split()
+            ignore.add( (int(row), int(column)) )
+    
+        m = sc.remove_colonies(m, ignore)
+
+    # Do the variance jack-knifing
+    m = sc.variance_jackknife(m,
+            param='colony size',
+            var_threshold=options.variance)
+
+    # Rewrite the new Iris file
+    f = open(os.path.join(options.odir,
+        os.path.basename(options.irisfile)), 'w')
+    f.write('\n'.join(header))
+    f.write('\n')
+    f.write('\t'.join(m.columns))
+    f.write('\n')
+    # Drop the dataframe index
+    m = m.reset_index(drop=True)
+    for i in m.T:
+        f.write('\t'.join([str(m.T[i][col]) for col in m.columns]))
+        f.write('\n')
+    f.close()

@@ -1,0 +1,179 @@
+#!/usr/bin/env python
+
+# Copyright (C) <2015> EMBL-European Bioinformatics Institute
+
+# This program is free software: you can redistribute it and/or
+# modify it under the terms of the GNU General Public License as
+# published by the Free Software Foundation, either version 3 of
+# the License, or (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+
+# Neither the institution name nor the name screenings can
+# be used to endorse or promote products derived from this
+# software without prior written permission. For written
+# permission, please contact <marco@ebi.ac.uk>.
+
+# Products derived from this software may not be called
+# screenings nor may screenings appear in their names
+# without prior written permission of the developers.
+# You should have received a copy of the GNU General Public
+# License along with this program. If not, see
+# <http://www.gnu.org/licenses/>.
+
+__author__ = "Marco Galardini"
+__version__ = "0.0.1"
+
+def get_options():
+    import argparse
+
+    # create the top-level parser
+    description = "Collect Iris files and store them in a directory"
+    parser = argparse.ArgumentParser(description = description,
+                                     prog = 'collect_iris')
+    parser.add_argument('tpoints', action='store',
+                        help='Correct time points file (tab-delimited)')
+    parser.add_argument('idir', action='store',
+                        help='Iris directory (structure: XXX)')
+    parser.add_argument('odir', action='store',
+                        help='Output directory')
+    parser.add_argument('plate', action='store',
+                        help='Plate to consider')
+
+    parser.add_argument('--ignore', action='store',
+                        dest='ignore',
+                        default=None,
+                help='File name with positions to ignore (row column)')
+
+    parser.add_argument('--version', action='version',
+                         version='%(prog)s '+__version__)
+
+    return parser.parse_args()
+
+if __name__ == "__main__":
+    options = get_options()
+
+    import os
+    import sys
+    import csv
+    import shutil
+
+    ignore = set()
+    if options.ignore is not None:
+        for l in open(options.ignore):
+            row, column = l.strip().split()
+            ignore.add( (int(row), int(column)) )
+
+    with open(options.tpoints, 'r') as tsvfile:
+        for row in csv.DictReader(tsvfile, delimiter='\t'):
+            # Skip the conditions for which there is no timepoint available
+            if len({row[x] for x in 'ABC'}) == 1 and '-' in {row[x] for x in 'ABC'}:
+                sys.stderr.write('Condition %s_%s has no timepoints'
+                        %(row['C1'], row['C2']))
+                sys.stderr.write('\n')
+                continue
+
+            # Avoid repicking the same file between replica
+            picked = set()
+
+            for rep in 'ABC':
+                # Pick the iris directory
+                if row[rep] == '-':
+                    continue
+                dirs = list(filter(lambda x: os.path.isdir(os.path.join(
+                    options.idir, row[rep],
+                    x)) and x.startswith('JPG'),
+                    os.listdir(os.path.join(options.idir, row[rep]))))
+                
+                # More than one iris dir?
+                if len(dirs) > 1:
+                    sys.stderr.write('More than one Iris directory for condition %s_%s'
+                            %(row['C1'], row['C2']))
+                    sys.stderr.write('\n')
+                    sys.exit(1)
+                # No Iris dir?
+                if len(dirs) == 0:
+                    sys.stderr.write('No Iris directory for condition %s_%s'
+                            %(row['C1'], row['C2']))
+                    sys.stderr.write('\n')
+                    sys.exit(1)
+
+                iris_dir = dirs[0]
+
+                # Is my replica available here?
+                iris_files = list(filter(lambda x: x.endswith('iris'),
+                        os.listdir(
+                    os.path.join(options.idir, row[rep], iris_dir))
+                        ))
+
+                iris_file = '%s-%s-%s_%s.JPG.iris'%(row['C1'],
+                                                    row['C2'],
+                                                    options.plate,
+                                                    rep)
+                
+                # Lowercase match
+                matches = list(filter(lambda x: x.lower() == iris_file.lower(),
+                        iris_files))
+
+                if len(matches) == 0:
+                    # There might be a different replica (or replica swap)
+                    # Check here if other replicas are there
+                    matches = list(filter(lambda x: x.lower().startswith(
+                            '%s-%s-%s'%(row['C1'].lower(),
+                                        row['C2'].lower(),
+                                        options.plate.lower())),
+                                    iris_files))
+                    if len(matches) == 0:
+                        sys.stderr.write('Could not find %s in %s'
+                            %(iris_file, row[rep]))
+                        sys.stderr.write('\n')
+                        continue
+                    # If more than one replica, say something
+                    # Then just pick the first file
+
+                    # Careful here! Avoid duplicates!
+
+                    if len(matches) > 1:
+                        sys.stderr.write('More than one alternative replica for %s_%s'
+                                %(row['C1'],
+                                  row['C2']))
+                        sys.stderr.write('\n')
+                        sys.stderr.write(', '.join(matches))
+                        sys.stderr.write('\n')
+                
+                    for pick in picked:
+                        matches.remove(pick)
+
+                    if len(matches) == 0:
+                        sys.stderr.write('Could not find %s in %s'
+                            %(iris_file, row[rep]))
+                        sys.stderr.write('\n')
+                        continue
+
+                sys.stderr.write('Picking %s'%(matches[0]))
+                sys.stderr.write('\n')
+                pick = matches[0]
+                
+                # Copy and rename the file
+                # Print the file conversion (if any) for reference
+                dest = '%s-%s-%s_%s.JPG.iris'%(row['C1'].lower(),
+                                               row['C2'].lower(),
+                                               options.plate,
+                                               rep.upper())
+
+                print('\t'.join([
+                    os.path.join(options.idir,
+                                 row[rep],
+                                 iris_dir,
+                                 pick),
+                    os.path.join(options.odir,
+                                 dest)]))
+                shutil.copy(os.path.join(options.idir,
+                                 row[rep],
+                                 iris_dir,
+                                 pick),
+                            os.path.join(options.odir,
+                                 dest))
