@@ -43,11 +43,6 @@ def get_options():
     parser.add_argument('plate', action='store',
                         help='Plate to consider')
 
-    parser.add_argument('--ignore', action='store',
-                        dest='ignore',
-                        default=None,
-                help='File name with positions to ignore (row column)')
-
     parser.add_argument('--version', action='version',
                          version='%(prog)s '+__version__)
 
@@ -60,12 +55,6 @@ if __name__ == "__main__":
     import sys
     import csv
     import shutil
-
-    ignore = set()
-    if options.ignore is not None:
-        for l in open(options.ignore):
-            row, column = l.strip().split()
-            ignore.add( (int(row), int(column)) )
 
     with open(options.tpoints, 'r') as tsvfile:
         for row in csv.DictReader(tsvfile, delimiter='\t'):
