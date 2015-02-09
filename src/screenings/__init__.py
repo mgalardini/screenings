@@ -214,17 +214,17 @@ def variance_jackknife(df,
     for strain in strains:
         # Stop if there are less than 2 non-null points
         try:
-            float(m[m[param] > 0].loc[strain, param])
+            float(m.loc[strain, param])
             continue
         except:
             pass
         try:
-            m[m[param] > 0].loc[strain,
-                                param].dropna()
+            m.loc[strain,
+                  param].dropna()
         except:
             continue
             
-        spots = len(m[m[param] > 0].loc[strain,
+        spots = len(m.loc[strain,
             param].dropna())
             
         if spots < 3:
@@ -232,12 +232,12 @@ def variance_jackknife(df,
             
         discard = set()
         
-        total_variance = variance(m.loc[strain,
-            param]) * (spots - 1)
+        total_variance = variance(m.loc[
+            strain].dropna()[param]) * (spots - 1)
         
-        for s, r, c in zip(m.loc[strain, param],
-                        m.loc[strain, 'row'],
-                        m.loc[strain, 'column']):
+        for s, r, c in zip(m.loc[strain].dropna()[param].as_matrix(),
+                        m.loc[strain].dropna()['row'].as_matrix(),
+                        m.loc[strain].dropna()['column'].as_matrix()):
             s_variance = variance(m[(m.row != r) &
                       (m.column != c)].loc[strain,
                           param])
