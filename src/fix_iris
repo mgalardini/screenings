@@ -106,6 +106,12 @@ if __name__ == "__main__":
     # Drop the dataframe index
     m = m.reset_index(drop=True)
     for i in m.T:
-        f.write('\t'.join([str(m.T[i][col]) for col in m.columns]))
+        line = []
+        for col in m.columns:
+            if col == 'row' or col == 'column':
+                line.append(int(m.T[i][col]))
+            else:
+                line.append(m.T[i][col])
+        f.write('\t'.join([str(x) for x in line]))
         f.write('\n')
     f.close()
