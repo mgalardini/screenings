@@ -1,0 +1,91 @@
+#!/usr/bin/env python
+
+# Copyright (C) <2015> EMBL-European Bioinformatics Institute
+
+# This program is free software: you can redistribute it and/or
+# modify it under the terms of the GNU General Public License as
+# published by the Free Software Foundation, either version 3 of
+# the License, or (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+
+# Neither the institution name nor the name screenings can
+# be used to endorse or promote products derived from this
+# software without prior written permission. For written
+# permission, please contact <marco@ebi.ac.uk>.
+
+# Products derived from this software may not be called
+# screenings nor may screenings appear in their names
+# without prior written permission of the developers.
+# You should have received a copy of the GNU General Public
+# License along with this program. If not, see
+# <http://www.gnu.org/licenses/>.
+
+__author__ = "Marco Galardini"
+__version__ = "0.0.1"
+
+def get_options():
+    import argparse
+
+    # create the top-level parser
+    description = "Indicate the most frequently missing strains"
+    parser = argparse.ArgumentParser(description = description,
+                                     prog = 'missing_colonies')
+    parser.add_argument('idir', action='store',
+                        help='Iris files directory'+
+                        '(only files ending in *.iris will be loaded)')
+    parser.add_argument('platefile', action='store',
+                        help='Plate information file')
+
+    parser.add_argument('--size', action='store',
+                type=float,
+                default=0,
+                help='Size threshold: colonies smaller than this will'
+                ' be considered [Default: 0]')
+    
+    parser.add_argument('--quantile', action='store',
+                default=0.95,
+                type=float,
+                help='Quantile threshold for the number of missing colonies'+
+                ' per plate [Default: 0.95]')
+    
+    parser.add_argument('--version', action='version',
+                         version='%(prog)s '+__version__)
+
+    return parser.parse_args()
+
+if __name__ == "__main__":
+    import sys
+    import os
+    import screenings as sc
+    from scipy.stats.mstats import mquantiles
+
+    options = get_options()
+
+    plates = 0
+    missing = {}
+
+    for f in filter(lambda x: x.endswith('.iris'),
+            os.listdir(options.idir)):
+        plates += 1
+
+        m = sc.parse_iris(os.path.join(options.idir, f),
+            options.platefile)
+        for r, c in zip(m[m['colony size'] <= options.size]['row'],
+                        m[m['colony size'] <= options.size]['column']):
+            missing[(r, c)] = missing.get((r, c), 0)
+            missing[(r, c)] += 1
+
+    # Get missing count upper IQR
+    threshold = mquantiles(missing.values(), prob=[0.95])[0]
+
+    sys.stderr.write('Picking a missing threshold of %d'%threshold)
+    sys.stderr.write('\n')
+
+    for r, c in filter(lambda x: missing[x] > threshold,
+            missing):
+        print('%d\t%d'%(r, c))
+

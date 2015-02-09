@@ -9,6 +9,7 @@ Dependencies
 * python
 * pandas
 * numpy
+* scipy
 
 Usage
 -----
