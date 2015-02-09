@@ -9,9 +9,6 @@ Dependencies
 * python
 * pandas
 * numpy
-* scipy
-* matplotlib
-* seaborn
 
 Usage
 -----

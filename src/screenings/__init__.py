@@ -68,7 +68,8 @@ def parse_names(infile):
     with open(infile, 'rb') as tsvfile:
         reader = csv.reader(tsvfile, delimiter='\t')
         for r in reader:
-            yield r[4], r[6], (r[7], alphabetical.index(r[9])+1, int(r[8])), (r[10], int(r[11]), int(r[12]))
+            yield r[4], r[6], (r[7], alphabetical.index(r[9])+1, int(r[8])), (
+                    r[10], int(r[11]), int(r[12]))
 
 def fix_circularity(df,
         circularity=0.5,
