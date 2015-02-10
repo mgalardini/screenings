@@ -1,0 +1,64 @@
+#!/usr/bin/env python
+
+# Copyright (C) <2015> EMBL-European Bioinformatics Institute
+
+# This program is free software: you can redistribute it and/or
+# modify it under the terms of the GNU General Public License as
+# published by the Free Software Foundation, either version 3 of
+# the License, or (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+
+# Neither the institution name nor the name screenings can
+# be used to endorse or promote products derived from this
+# software without prior written permission. For written
+# permission, please contact <marco@ebi.ac.uk>.
+
+# Products derived from this software may not be called
+# screenings nor may screenings appear in their names
+# without prior written permission of the developers.
+# You should have received a copy of the GNU General Public
+# License along with this program. If not, see
+# <http://www.gnu.org/licenses/>.
+
+__author__ = "Marco Galardini"
+__version__ = "0.0.1"
+
+def get_options():
+    import argparse
+
+    # create the top-level parser
+    description = "Rescale S-scores coming from E-Map"
+    parser = argparse.ArgumentParser(description = description,
+                                     prog = 'rescale_sscore')
+    parser.add_argument('infile', action='store',
+                        help='E-Map output file (fileForCluster3.txt)')
+
+    parser.add_argument('--iqr', action='store_true',
+                default=False,
+                help='Use IQR rescaling [Default: MAD]')
+    
+    parser.add_argument('--version', action='version',
+                         version='%(prog)s '+__version__)
+
+    return parser.parse_args()
+
+if __name__ == "__main__":
+    import pandas as pd
+    import screenings as sc
+    import sys
+
+    options = get_options()
+
+    e = pd.read_table(options.infile)
+    e.set_index(['Gene'], inplace=True)
+
+    if not options.iqr:
+        e = e.apply(sc.mad_norm, axis=0)
+    else:
+        e = e.apply(sc.iqr_norm, axis=0)
+   
+    e.to_csv(sys.stdout, sep='\t')

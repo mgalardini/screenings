@@ -266,3 +266,70 @@ def variance_jackknife(df,
                   'colony color intensity'] = np.nan
 
     return m1
+
+def iqr(data):
+    '''
+    Compute the interquartile range
+    
+    Equivalent to R's IQR function
+    Imortant: no NaN's should be present
+    '''
+    from scipy import stats
+
+    Q1, Q3 = stats.mstats.mquantiles(data,
+                        prob=[0.25, 0.75],
+                        alphap=1,
+                        betap=1)
+    return Q3 - Q1
+
+def mad(data, c=0.6745):
+    '''
+    Compute the MAD
+    
+    Equivalent to R's mad function
+    Imortant: no NaN's should be present
+    '''
+    import numpy as np
+
+    return np.ma.median(np.ma.fabs(data - np.ma.median(data))) / c
+
+def iqr_norm(data):
+    '''
+    Normalize the data using the IQR
+    (Inter-Quartile Range)
+    
+    Works with columns extracted from a Pandas DataFrame
+    
+    Equivalent to the R snippet used in the Typas lab
+    (minor changes in the normalized score can be seen)
+    '''
+    import numpy as np
+    from scipy import stats
+
+    data = np.ma.masked_array(data.as_matrix(),
+                   np.isnan(data.as_matrix()))
+    
+    iqr_std = stats.norm.ppf(0.75)*2
+    
+    return iqr_std * (data - np.median(data))/iqr(data)
+
+def mad_norm(data):
+    '''
+    Normalize the data using the MAD
+    (Mean Absolute Deviation)
+    
+    Works with columns extracted from a Pandas DataFrame
+    
+    Equivalent to the R snippet used in the Typas lab
+    (minor changes in the normalized score can be seen)
+    '''
+    import numpy as np
+    import math
+
+    data = np.ma.masked_array(data.as_matrix(),
+                   np.isnan(data.as_matrix()))
+    
+    mad_std = math.sqrt(2/math.pi)
+    
+    return mad_std * (data - np.ma.median(data))/mad(data)
+
