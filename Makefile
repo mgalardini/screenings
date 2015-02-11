@@ -21,7 +21,7 @@ ADDITIONALMISSING = $(CURDIR)/additional_missing.txt
 EMAP = $(CURDIR)/fileForCluster3.txt
 RESCALED = $(CURDIR)/emap.matrix.txt
 
-$(NAMECONVERSION): $(TIMEPOINTS)
+$(NAMECONVERSION): $(TIMEPOINTS) $(RAWDIR)
 	$(SRCDIR)/collect_iris $(TIMEPOINTS) $(BATCHDIR) $(RAWDIR) $(PLATE) > $(NAMECONVERSION)
 
 $(MISSING): $(NAMECONVERSION) $(PLATEFILE)
@@ -31,7 +31,7 @@ $(MISSING): $(NAMECONVERSION) $(PLATEFILE)
 RAWS = $(wildcard $(RAWDIR)/*.iris)
 FIXEDS = $(foreach RAW,$(RAWS),$(addprefix $(FIXEDDIR)/,$(addsuffix .iris,$(basename $(notdir $(RAW))))))
 
-$(FIXEDDIR)/%.iris: $(RAWDIR)/%.iris $(MISSING) $(PLATEFILE)
+$(FIXEDDIR)/%.iris: $(RAWDIR)/%.iris $(MISSING) $(PLATEFILE) $(FIXEDDIR)
 	$(SRCDIR)/fix_iris --circularity 0.5 --size 1200 --ignore $(MISSING) --variance 0.9 $< $(PLATEFILE) $(FIXEDDIR)
 
 $(RESCALED): $(EMAP)
