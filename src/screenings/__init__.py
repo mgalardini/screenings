@@ -80,7 +80,8 @@ def fix_circularity(df,
     ----------
     df : a DataFrame generated from Iris
          "colony size" and "circularity" columns should be present;
-         "colony color intensity" will also be corrected, if present
+         "colony color intensity" will also be corrected, if presenti,
+         same as "circularity", if present
     circularity : circularity threshold
     size : size threshold; colonies above this size won't be fixed
 
@@ -100,6 +101,13 @@ def fix_circularity(df,
     except:
         pass
     
+    try:
+        df.ix[(df['circularity'] < circularity) &
+                (df['colony size'] < size),
+            'circularity'] = np.nan
+    except:
+        pass
+    
     return df
 
 def remove_colonies(df, remove):
@@ -109,7 +117,7 @@ def remove_colonies(df, remove):
     ----------
     df : dataframe generated from Iris
          "colony size" and "colony color intensity" columns should be present,
-         as well as "row" and "column"
+         as well as "circularity", "row" and "column"
     remove: an iterable of (row, column) tuples to be removed
     
     Returns
@@ -125,6 +133,10 @@ def remove_colonies(df, remove):
         df.ix[(df['row'] == r) &
                 (df['column'] == c),
                 'colony color intensity'] = np.nan
+        df.ix[(df['row'] == r) &
+                (df['column'] == c),
+                'circularity'] = np.nan
+
     return df
 
 def median(data):
@@ -153,7 +165,7 @@ def variance(data):
     
     return np.ma.var(data)
 
-def normalize_outer(df):
+def normalize_outer(df, param='colony size'):
     '''
     Bring the outer colonies to the center median
     
@@ -162,22 +174,22 @@ def normalize_outer(df):
     inner_median = median(df[(df.row > 2) &
                             (df.row < 31) &
                             (df.column > 2) &
-                            (df.column < 47)]['colony size'])
+                            (df.column < 47)][param])
     
     outer_median = median(df[(df.row < 3) |
                             (df.row > 30) |
                             (df.column < 3) |
-                            (df.column > 46)]['colony size'])
+                            (df.column > 46)][param])
     
     outer_size = df[(df.row < 3) |
                    (df.row > 30) |
                    (df.column < 3) |
-                   (df.column > 46)]['colony size']
+                   (df.column > 46)][param]
     
     df.ix[(df.row < 3) |
          (df.row > 30) |
          (df.column < 3) |
-         (df.column > 46), 'colony size'] =  outer_size * (
+         (df.column > 46), param] =  outer_size * (
                  inner_median/outer_median
                  )
     
@@ -192,7 +204,8 @@ def variance_jackknife(df,
     ----------
     df : dataframe generated from Iris
          the parameter on which the analysis is performed should be present,
-         as well as "row", "column", "colony color intensity" and "colony size"
+         as well as "row", "column", "colony color intensity", "colony size"
+         and "circularity"
     param : parameter used for the variance analysis
     var_threshold : remove colonies which contribute to variance over
                     this threshold
@@ -208,7 +221,7 @@ def variance_jackknife(df,
     m1 = deepcopy(df)
 
     # First bring the outer colonies to the inner median
-    m = normalize_outer(df)
+    m = normalize_outer(df, param)
     
     strains = {x for x in m.index}
     for strain in strains:
@@ -264,6 +277,9 @@ def variance_jackknife(df,
             m1.ix[(m1.row == row) &
                   (m1.column == column),
                   'colony color intensity'] = np.nan
+            m1.ix[(m1.row == row) &
+                  (m1.column == column),
+                  'circularity'] = np.nan
 
     return m1
 

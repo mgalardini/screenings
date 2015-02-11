@@ -96,6 +96,14 @@ if __name__ == "__main__":
             param='colony size',
             var_threshold=options.variance)
 
+    # Do it again to remove "budding colonies"
+    # and colonies with abnormal shapes
+    # that are probably contaminations
+    m = sc.variance_jackknife(m,
+            param='circularity',
+            var_threshold=options.variance)
+
+
     # Rewrite the new Iris file
     f = open(os.path.join(options.odir,
         os.path.basename(options.irisfile)), 'w')
