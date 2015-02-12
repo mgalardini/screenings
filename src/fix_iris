@@ -56,11 +56,16 @@ def get_options():
                         default=None,
                 help='File name with positions to ignore (row column)')
 
-    parser.add_argument('--variance', action='store',
+    parser.add_argument('--variance-size', action='store',
                 default=0.9,
                 type=float,
                 help='Remove replica that contribute at least to this fractio'+
-                'n of the total variance [Default: 0.9]')
+                'n of the total size variance [Default: 0.9]')
+    parser.add_argument('--variance-circularity', action='store',
+                default=0.95,
+                type=float,
+                help='Remove replica that contribute at least to this fractio'+
+                'n of the total circularity variance [Default: 0.95]')
     
     parser.add_argument('--version', action='version',
                          version='%(prog)s '+__version__)
@@ -94,15 +99,14 @@ if __name__ == "__main__":
     # Do the variance jack-knifing
     m = sc.variance_jackknife(m,
             param='colony size',
-            var_threshold=options.variance)
+            var_threshold=options.variance_size)
 
     # Do it again to remove "budding colonies"
     # and colonies with abnormal shapes
     # that are probably contaminations
     m = sc.variance_jackknife(m,
             param='circularity',
-            var_threshold=options.variance)
-
+            var_threshold=options.variance_circularity)
 
     # Rewrite the new Iris file
     f = open(os.path.join(options.odir,
