@@ -46,11 +46,11 @@ def get_options():
                 help='Size threshold: colonies smaller than this will'
                 ' be considered [Default: 0]')
     
-    parser.add_argument('--quantile', action='store',
+    parser.add_argument('--percentile', action='store',
                 default=0.95,
                 type=float,
-                help='Quantile threshold for the number of missing colonies'+
-                ' per plate [Default: 0.95]')
+                help='Percentile threshold for the number of missing colonies'+
+                ' per plate, based on the total number of plates [Default: 0.95]')
     
     parser.add_argument('--version', action='version',
                          version='%(prog)s '+__version__)
@@ -61,7 +61,6 @@ if __name__ == "__main__":
     import sys
     import os
     import screenings as sc
-    from scipy.stats.mstats import mquantiles
 
     options = get_options()
 
@@ -71,21 +70,41 @@ if __name__ == "__main__":
     for f in filter(lambda x: x.endswith('.iris'),
             os.listdir(options.idir)):
         plates += 1
+    
+        strains = {}
 
         m = sc.parse_iris(os.path.join(options.idir, f),
-            options.platefile)
+                options.platefile)
         for r, c in zip(m[m['colony size'] <= options.size]['row'],
                         m[m['colony size'] <= options.size]['column']):
             missing[(r, c)] = missing.get((r, c), 0)
             missing[(r, c)] += 1
 
-    # Get missing count upper IQR
-    threshold = mquantiles(missing.values(), prob=[0.95])[0]
+            # Check whether all the replicates of this strain are
+            # consistently missing
+            strain = m[(m.row == r) &
+                   (m.column == c)].index[0]
+            strains[strain] = strains.get(strain, 0)
+            strains[strain] += 1
+    
+        # If all the replicates are missing, it is most probably a biological
+        # phenomenon, so reduce the count for this strain
+        for strain in filter(lambda x: strains[x] == m.loc[strain].shape[0],
+                             strains):
+            for r, c in zip(m.loc[strain, 'row'],
+                               m.loc[strain, 'column']):
+                missing[(r, c)] -= 1
+        
+    # Fill all the dict
+    for r, c in zip(m['row'],
+                    m['column']):
+        missing[(r, c)] = missing.get((r, c), 0)
 
-    sys.stderr.write('Picking a missing threshold of %d'%threshold)
+    threshold = plates * options.percentile
+
+    sys.stderr.write('Picking a missing threshold of %d plates'%threshold)
     sys.stderr.write('\n')
 
     for r, c in filter(lambda x: missing[x] > threshold,
             missing):
         print('%d\t%d'%(r, c))
-

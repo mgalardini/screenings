@@ -25,7 +25,7 @@ $(NAMECONVERSION): $(TIMEPOINTS) $(RAWDIR)
 	$(SRCDIR)/collect_iris $(TIMEPOINTS) $(BATCHDIR) $(RAWDIR) $(PLATE) > $(NAMECONVERSION)
 
 $(MISSING): $(NAMECONVERSION) $(PLATEFILE)
-	$(SRCDIR)/missing_colonies --size 0 --quantile 0.95 $(RAWDIR) $(PLATEFILE) > $(MISSING)
+	$(SRCDIR)/missing_colonies --size 0 --percentile 0.66 $(RAWDIR) $(PLATEFILE) > $(MISSING)
 	cat $(ADDITIONALMISSING) >> $(MISSING)
 
 RAWS = $(wildcard $(RAWDIR)/*.iris)
