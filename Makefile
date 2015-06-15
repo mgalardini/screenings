@@ -20,6 +20,7 @@ ADDITIONALMISSING = $(CURDIR)/additional_missing.txt
 
 EMAP = $(CURDIR)/fileForCluster3.txt
 RESCALED = $(CURDIR)/emap.matrix.txt
+FDR = $(CURDIR)/emap.fdr.txt
 
 $(NAMECONVERSION): $(TIMEPOINTS) $(RAWDIR)
 	$(SRCDIR)/collect_iris $(TIMEPOINTS) $(BATCHDIR) $(RAWDIR) $(PLATE) > $(NAMECONVERSION)
@@ -37,8 +38,11 @@ $(FIXEDDIR)/%.iris: $(RAWDIR)/%.iris $(MISSING) $(PLATEFILE) $(FIXEDDIR)
 $(RESCALED): $(EMAP)
 	$(SRCDIR)/rescale_sscores $(EMAP) > $(RESCALED)
 
+$(FDR): $(RESCALED)
+	$(SRCDIR)/fdr_matrix $(RESCALED) $(FDR)
+
 collect: $(NAMECONVERSION)
 pre-process: $(FIXEDS)
-post-process: $(RESCALED)
+post-process: $(RESCALED) $(FDR)
 
 .PHONY: collect pre-process post-process
