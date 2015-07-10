@@ -33,6 +33,12 @@ SNPS = $(CURDIR)/SNPs_matrix.tsv
 SNPSDEL = $(CURDIR)/SNPs_del_matrix.tsv
 SNPSFUNCTIONAL = $(CURDIR)/SNPs_functional_matrix.tsv
 
+# External data: deletion screen
+DELDIR = $(CURDIR)/deletion_screen
+DELIN = $(DELDIR)/size_NormScores_cleaner_b45_9subB.txt
+DEL = $(CURDIR)/deletion.matrix.txt
+DELFDR = $(CURDIR)/deletion.fdr.txt
+
 #############
 ## Collect ##
 #############
@@ -67,6 +73,16 @@ $(RESCALED): $(RENAMED)
 $(FDR): $(RESCALED)
 	$(SRCDIR)/fdr_matrix $(RESCALED) $(FDR)
 
+######################################
+## Deletion screen post-processing  ##
+######################################
+
+$(DEL): $(DELIN) $(RESCALED)
+	$(SRCDIR)/shared_matrix $(DELIN) $(RESCALED) $(DEL) --index1 genes --index2 Gene
+
+$(DELFDR): $(DEL)
+	$(SRCDIR)/fdr_matrix $(DEL) $(DELFDR) --index genes
+
 ########################
 ## Reports generation ##
 ########################
@@ -92,6 +108,7 @@ $(RGENOTYPES): $(NGENOTYPES) $(RESCALED) $(FDR) $(ROARY) $(SNPS) $(SNPSDEL) $(SN
 collect: $(NAMECONVERSION)
 pre-process: $(FIXEDS)
 post-process: $(RESCALED) $(FDR)
+deletion: $(DEL) $(DELFDR)
 reports: $(RPHENOTYPES) $(RGENOTYPES)
 
-.PHONY: collect pre-process post-process reports
+.PHONY: collect pre-process post-process deletion reports

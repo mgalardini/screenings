@@ -39,6 +39,10 @@ def get_options():
     parser.add_argument('outmatrix', action='store',
                         help='Output matrix file')
 
+    parser.add_argument('--index', action='store',
+                        default='Gene',
+                        help='Index column [Default: "Gene"]')
+    
     parser.add_argument('--version', action='version',
                          version='%(prog)s '+__version__)
 
@@ -88,7 +92,7 @@ if __name__ == "__main__":
 
     # Read the input matrix
     m = pd.read_table(options.inmatrix)
-    m.set_index(['Gene'], inplace=True)
+    m.set_index(options.index, inplace=True)
     
     print('Applying FDR filtering (5%)')
    
