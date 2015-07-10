@@ -23,6 +23,12 @@ EMAP = $(CURDIR)/fileForCluster3.txt
 RESCALED = $(CURDIR)/emap.matrix.txt
 FDR = $(CURDIR)/emap.fdr.txt
 
+# External data
+ROARY = $(CURDIR)/gene_presence_absence.csv
+SNPS = $(CURDIR)/SNPs_matrix.tsv
+SNPSDEL = $(CURDIR)/SNPs_del_matrix.tsv
+SNPSFUNCTIONAL = $(CURDIR)/SNPs_functional_matrix.tsv
+
 #############
 ## Collect ##
 #############
@@ -67,9 +73,18 @@ $(RPHENOTYPES): $(NPHENOTYPES) $(RESCALED) $(FDR)
 	git commit -m "Updated phenotypes report" && \
 	git push
 
+NGENOTYPES = $(NOTEBOOKSDIR)/phenotypes_genetics.ipynb
+RGENOTYPES = $(NOTEBOOKSDIR)/phenotypes_genetics.html
+$(RGENOTYPES): $(NGENOTYPES) $(RESCALED) $(FDR) $(ROARY) $(SNPS) $(SNPSDEL) $(SNPSFUNCTIONAL)
+	runipy -o $(NGENOTYPES) && \
+	cd $(NOTEBOOKSDIR) && ipython nbconvert --to=html $(notdir $(NGENOTYPES)) --template html.tpl && cd $(CURDIR) && \
+	git add $(NGENOTYPES) && \
+	git commit -m "Updated phenotypes/genotypes report" && \
+	git push
+
 collect: $(NAMECONVERSION)
 pre-process: $(FIXEDS)
 post-process: $(RESCALED) $(FDR)
-reports: $(RPHENOTYPES)
+reports: $(RPHENOTYPES) $(RGENOTYPES)
 
 .PHONY: collect pre-process post-process reports
