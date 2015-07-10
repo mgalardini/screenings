@@ -1,0 +1,83 @@
+#!/usr/bin/env python
+
+# Copyright (C) <2015> EMBL-European Bioinformatics Institute
+
+# This program is free software: you can redistribute it and/or
+# modify it under the terms of the GNU General Public License as
+# published by the Free Software Foundation, either version 3 of
+# the License, or (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+
+# Neither the institution name nor the name screenings can
+# be used to endorse or promote products derived from this
+# software without prior written permission. For written
+# permission, please contact <marco@ebi.ac.uk>.
+
+# Products derived from this software may not be called
+# screenings nor may screenings appear in their names
+# without prior written permission of the developers.
+# You should have received a copy of the GNU General Public
+# License along with this program. If not, see
+# <http://www.gnu.org/licenses/>.
+
+__author__ = "Marco Galardini"
+__version__ = "0.0.1"
+
+def get_options():
+    import argparse
+
+    # create the top-level parser
+    description = "Output a matrix with only the shared columns with another"
+    parser = argparse.ArgumentParser(description = description,
+                                     prog = 'shared_matrix')
+    parser.add_argument('inmatrix', action='store',
+                        help='Input matrix file')
+    parser.add_argument('othermatrix', action='store',
+                        help='Other matrix file')
+    parser.add_argument('outmatrix', action='store',
+                        help='Output matrix file')
+
+    parser.add_argument('--index1', action='store',
+                        default='genes',
+                        help='Input matrix index column [Default: "genes"]')
+    parser.add_argument('--index2', action='store',
+                        default='Gene',
+                        help='Other matrix index column [Default: "Gene"]')
+    
+    parser.add_argument('--version', action='version',
+                         version='%(prog)s '+__version__)
+
+    return parser.parse_args()
+
+if __name__ == "__main__":
+    import pandas as pd
+    options = get_options()
+
+    # Read the input matrix
+    m = pd.read_table(options.inmatrix)
+    m.set_index(options.index1, inplace=True)
+    
+    print('Starting columns: %d'%m.shape[1])
+
+    # Read the columns to keep
+    m1 = pd.read_table(options.othermatrix)
+    m1.set_index(options.index2, inplace=True)
+
+    # Intersect
+    intersect = set(m.columns).intersection(m1.columns)
+
+    print('Columns to keep/rename: %d'%len(intersect))
+
+    m.drop(set(m.columns) - intersect,
+           axis=1,
+           inplace=True)
+
+    # Order the columns by name
+    m = m.reindex_axis(sorted(m.columns), axis=1)
+    
+    # Rewrite the matrix
+    m.to_csv(options.outmatrix, sep='\t')
