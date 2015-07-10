@@ -20,8 +20,12 @@ MISSING = $(CURDIR)/missing.txt
 ADDITIONALMISSING = $(CURDIR)/additional_missing.txt
 
 EMAP = $(CURDIR)/fileForCluster3.txt
+RENAMED = $(CURDIR)/fileForCluster3.renamed.txt
 RESCALED = $(CURDIR)/emap.matrix.txt
 FDR = $(CURDIR)/emap.fdr.txt
+
+# Name conversion
+CONVERSION = $(CURDIR)/conditions.csv
 
 # External data
 ROARY = $(CURDIR)/gene_presence_absence.csv
@@ -54,8 +58,11 @@ $(FIXEDDIR)/%.iris: $(RAWDIR)/%.iris $(MISSING) $(PLATEFILE) $(FIXEDDIR)
 ## Post-processing  ##
 ######################
 
-$(RESCALED): $(EMAP)
-	$(SRCDIR)/rescale_sscores $(EMAP) > $(RESCALED)
+$(RENAMED): $(EMAP)
+	$(SRCDIR)/rename_matrix $(EMAP) $(CONVERSION) $(RENAMED)
+
+$(RESCALED): $(RENAMED)
+	$(SRCDIR)/rescale_sscores $(RENAMED) > $(RESCALED)
 
 $(FDR): $(RESCALED)
 	$(SRCDIR)/fdr_matrix $(RESCALED) $(FDR)
