@@ -38,6 +38,7 @@ DELDIR = $(CURDIR)/deletion_screen
 DELIN = $(DELDIR)/size_NormScores_cleaner_b45_9subB.txt
 DEL = $(CURDIR)/deletion.matrix.txt
 DELFDR = $(CURDIR)/deletion.fdr.txt
+DELGENES = $(CURDIR)/deletion.genes.txt
 
 #############
 ## Collect ##
@@ -83,6 +84,9 @@ $(DEL): $(DELIN) $(RESCALED)
 $(DELFDR): $(DEL)
 	$(SRCDIR)/fdr_matrix $(DEL) $(DELFDR) --index genes
 
+$(DELGENES): $(DEL) $(DELFDR)
+	$(SRCDIR)/important_genes $(DEL) $(DELFDR) --index1 genes --index2 genes --filter Deletion > $(DELGENES)
+
 ########################
 ## Reports generation ##
 ########################
@@ -108,7 +112,7 @@ $(RGENOTYPES): $(NGENOTYPES) $(RESCALED) $(FDR) $(ROARY) $(SNPS) $(SNPSDEL) $(SN
 collect: $(NAMECONVERSION)
 pre-process: $(FIXEDS)
 post-process: $(RESCALED) $(FDR)
-deletion: $(DEL) $(DELFDR)
+deletion: $(DEL) $(DELFDR) $(DELGENES)
 reports: $(RPHENOTYPES) $(RGENOTYPES)
 
 .PHONY: collect pre-process post-process deletion reports
