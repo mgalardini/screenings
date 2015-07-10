@@ -1,0 +1,80 @@
+#!/usr/bin/env python
+
+# Copyright (C) <2015> EMBL-European Bioinformatics Institute
+
+# This program is free software: you can redistribute it and/or
+# modify it under the terms of the GNU General Public License as
+# published by the Free Software Foundation, either version 3 of
+# the License, or (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+
+# Neither the institution name nor the name screenings can
+# be used to endorse or promote products derived from this
+# software without prior written permission. For written
+# permission, please contact <marco@ebi.ac.uk>.
+
+# Products derived from this software may not be called
+# screenings nor may screenings appear in their names
+# without prior written permission of the developers.
+# You should have received a copy of the GNU General Public
+# License along with this program. If not, see
+# <http://www.gnu.org/licenses/>.
+
+__author__ = "Marco Galardini"
+__version__ = "0.0.1"
+
+def get_options():
+    import argparse
+
+    # create the top-level parser
+    description = "Rename columns in a matrix"
+    parser = argparse.ArgumentParser(description = description,
+                                     prog = 'rename_matrix')
+    parser.add_argument('inmatrix', action='store',
+                        help='Input matrix file')
+    parser.add_argument('conversion', action='store',
+                        help='Conversion file (CSV format)')
+    parser.add_argument('outmatrix', action='store',
+                        help='Output matrix file')
+
+    parser.add_argument('--version', action='version',
+                         version='%(prog)s '+__version__)
+
+    return parser.parse_args()
+
+if __name__ == "__main__":
+    import pandas as pd
+    options = get_options()
+
+    # Read the input matrix
+    m = pd.read_table(options.inmatrix)
+    m.set_index(['Gene'], inplace=True)
+
+    # Read the conversion table
+    conversion = pd.read_table(options.conversion,
+                               sep=',',
+                               header=None)
+    conversion.columns = ['orig', '1', '2']
+    conversion['orig'] = [x.upper() for x in conversion['orig']]
+
+    # Are some of our columns not there?
+    not_found = set()
+    for c in m.columns:
+        if c.lower() not in {x.lower() for x in conversion['orig']}:
+            not_found.add( c.upper() )
+    if len( not_found ) > 1:
+        for c in not_found:
+            print('%c not in the conversion table!'%c)
+        sys.exit(1)
+
+    # Fix the column names
+    m.columns = ['.'.join( (list(conversion.loc[conversion['orig'] == x]['1'])[0].upper(),
+                            list(conversion.loc[conversion['orig'] == x]['2'])[0].upper()) )
+                for x in m.columns]
+
+    # Rewrite the matrix
+    m.to_csv(options.outmatrix, sep='\t')
