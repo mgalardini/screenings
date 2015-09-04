@@ -1,9 +1,9 @@
-BATCH = batch5
+BATCH = batch6
 IRIS = iris_0.9.4.71
 
 PLATE = 8
-PLATEFILE = $(CURDIR)/$(BATCH).tsv
-BATCHDIR = ../../datasets/screens/BATCH5_8/
+PLATEFILE = $(CURDIR)/plates.tsv
+BATCHDIR = ../../datasets/screens/BATCH6/
 
 SRCDIR = $(CURDIR)/src
 NOTEBOOKSDIR = $(CURDIR)/notebooks

@@ -54,7 +54,7 @@ def get_options():
     parser.add_argument('--ignore', action='store',
                         dest='ignore',
                         default=None,
-                help='File name with positions to ignore (row column)')
+                help='File name with positions to ignore (plate row column)')
 
     parser.add_argument('--variance-size', action='store',
                 default=0.9,
@@ -78,8 +78,11 @@ if __name__ == "__main__":
 
     options = get_options()
 
+    plate = options.irisfile.split('-')[2].split('_')[0]
+
     m = sc.parse_iris(options.irisfile,
-            options.platefile)
+            options.platefile,
+            platenumber=plate)
     header = sc.get_header(options.irisfile) 
 
     # Fix circularity
@@ -91,8 +94,9 @@ if __name__ == "__main__":
     ignore = set()
     if options.ignore is not None:
         for l in open(options.ignore):
-            row, column = l.strip().split()
-            ignore.add( (int(row), int(column)) )
+            p, row, column = l.strip().split()
+            if p == plate:
+                ignore.add( (int(row), int(column)) )
     
         m = sc.remove_colonies(m, ignore)
 

@@ -31,7 +31,7 @@ def get_header(infile):
     '''Get the header of an Iris file'''
     return [l.strip() for (i,l) in zip(range(6), open(infile))]
 
-def parse_iris(infile, platefile=None):
+def parse_iris(infile, platefile=None, platenumber=None):
     '''Parse an Iris output
 
     Returns a Pandas dataframe.
@@ -43,7 +43,7 @@ def parse_iris(infile, platefile=None):
 
     # Add the spots identifiers
     if platefile is not None:
-        plate['id'] = [x[0] for x in sorted(parse_names(platefile),
+        plate['id'] = [x[0] for x in sorted(parse_names(platefile, plate=platenumber),
                                      key=lambda x: (x[3][1], x[3][2]))]
         # Scar-tissue code (a multi-index is more complicated)
         #plate['name'] = [x[1] for x in sorted(parse_names(platefile),
@@ -55,7 +55,7 @@ def parse_iris(infile, platefile=None):
 
     return plate
 
-def parse_names(infile):
+def parse_names(infile, plate=None):
     '''Get the position and names for each strain
     
     Yields id, name, (p384, row, column), (p1536, row, column)
@@ -68,6 +68,8 @@ def parse_names(infile):
     with open(infile, 'rb') as tsvfile:
         reader = csv.reader(tsvfile, delimiter='\t')
         for r in reader:
+            if plate is not None and r[10] != plate:
+                continue
             yield r[4], r[6], (r[7], alphabetical.index(r[9])+1, int(r[8])), (
                     r[10], int(r[11]), int(r[12]))
 

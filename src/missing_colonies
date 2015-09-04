@@ -64,47 +64,55 @@ if __name__ == "__main__":
 
     options = get_options()
 
-    plates = 0
+    plates = {}
+    ps = set()
     missing = {}
 
     for f in filter(lambda x: x.endswith('.iris'),
             os.listdir(options.idir)):
-        plates += 1
-    
         strains = {}
 
+        p = f.split('-')[2].split('_')[0]
+        ps.add( p )
+
+        plates[p] = plates.get(p, 0)
+        plates[p] += 1
+
         m = sc.parse_iris(os.path.join(options.idir, f),
-                options.platefile)
+                options.platefile, platenumber=p)
         for r, c in zip(m[m['colony size'] <= options.size]['row'],
                         m[m['colony size'] <= options.size]['column']):
-            missing[(r, c)] = missing.get((r, c), 0)
-            missing[(r, c)] += 1
+            missing[(p, r, c)] = missing.get((p, r, c), 0)
+            missing[(p, r, c)] += 1
 
             # Check whether all the replicates of this strain are
             # consistently missing
             strain = m[(m.row == r) &
                    (m.column == c)].index[0]
-            strains[strain] = strains.get(strain, 0)
-            strains[strain] += 1
+            strains[(p, strain)] = strains.get((p, strain), 0)
+            strains[(p, strain)] += 1
     
         # If all the replicates are missing, it is most probably a biological
         # phenomenon, so reduce the count for this strain
-        for strain in filter(lambda x: strains[x] == m.loc[strain].shape[0],
+        for strain in filter(lambda x: strains[x] == m.loc[x[1]].shape[0],
                              strains):
-            for r, c in zip(m.loc[strain, 'row'],
-                               m.loc[strain, 'column']):
-                missing[(r, c)] -= 1
+            for r, c in zip(m.loc[strain[1], 'row'],
+                               m.loc[strain[1], 'column']):
+                missing[(strain[0], r, c)] -= 1
         
     # Fill all the dict
-    for r, c in zip(m['row'],
+    for p, r, c in zip(ps, 
+                    m['row'],
                     m['column']):
-        missing[(r, c)] = missing.get((r, c), 0)
+        missing[(p, r, c)] = missing.get((p, r, c), 0)
 
-    threshold = plates * options.percentile
+    for p, v in plates.items():
+        threshold = v * options.percentile
 
-    sys.stderr.write('Picking a missing threshold of %d plates'%threshold)
-    sys.stderr.write('\n')
+        sys.stderr.write('Picking a missing threshold of %d plates for %s'%(threshold, p))
+        sys.stderr.write('\n')
 
-    for r, c in filter(lambda x: missing[x] > threshold,
-            missing):
-        print('%d\t%d'%(r, c))
+        for plate, r, c in filter(lambda x: missing[x] > threshold,
+                missing):
+            if plate == p:
+                print('%s\t%d\t%d'%(p, r, c))
