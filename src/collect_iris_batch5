@@ -42,6 +42,8 @@ def get_options():
                         help='Output directory')
     parser.add_argument('plate', action='store',
                         help='Plate to consider')
+    parser.add_argument('iris', action='store',
+                        help='Iris version directory')
 
     parser.add_argument('--version', action='version',
                          version='%(prog)s '+__version__)
@@ -95,7 +97,8 @@ if __name__ == "__main__":
                 # Is my replica available here?
                 iris_files = list(filter(lambda x: x.endswith('iris'),
                         os.listdir(
-                    os.path.join(options.idir, row[rep], iris_dir))
+                    os.path.join(options.idir, row[rep], iris_dir,
+                        options.iris))
                         ))
 
                 iris_file = '%s-%s-%s_%s.JPG.iris'%(row['C1'],
@@ -157,12 +160,14 @@ if __name__ == "__main__":
                     os.path.join(options.idir,
                                  row[rep],
                                  iris_dir,
+                                 options.iris,
                                  pick),
                     os.path.join(options.odir,
                                  dest)]))
                 shutil.copy(os.path.join(options.idir,
                                  row[rep],
                                  iris_dir,
+                                 options.iris,
                                  pick),
                             os.path.join(options.odir,
                                  dest))

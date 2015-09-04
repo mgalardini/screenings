@@ -1,4 +1,5 @@
 BATCH = batch5
+IRIS = iris_0.9.4.71
 
 PLATE = 8
 PLATEFILE = $(CURDIR)/$(BATCH).tsv
@@ -47,7 +48,7 @@ DELGENES = $(CURDIR)/deletion.genes.txt
 #############
 
 $(NAMECONVERSION): $(TIMEPOINTS) $(RAWDIR)
-	$(SRCDIR)/collect_iris $(TIMEPOINTS) $(BATCHDIR) $(RAWDIR) $(PLATE) > $(NAMECONVERSION)
+	$(SRCDIR)/collect_iris_$(BATCH) $(TIMEPOINTS) $(BATCHDIR) $(RAWDIR) $(PLATE) $(IRIS) > $(NAMECONVERSION)
 
 ####################
 ## Pre-processing ##
