@@ -1,26 +1,28 @@
+BATCH = batch5
+
 PLATE = 8
-PLATEFILE = $(CURDIR)/plate8.tsv
-BATCHDIR = ../datasets/screen/BATCH5_8/
+PLATEFILE = $(CURDIR)/$(BATCH).tsv
+BATCHDIR = ../../datasets/screens/BATCH5_8/
 
 SRCDIR = $(CURDIR)/src
 NOTEBOOKSDIR = $(CURDIR)/notebooks
 
-RAWDIR = $(CURDIR)/raw
+RAWDIR = $(CURDIR)/$(BATCH).raw
 $(RAWDIR):
 	mkdir -p $(RAWDIR)
 
-FIXEDDIR = $(CURDIR)/fixed
+FIXEDDIR = $(CURDIR)/$(BATCH).fixed
 $(FIXEDDIR):
 	mkdir -p $(FIXEDDIR)
 
-TIMEPOINTS = $(CURDIR)/tpoints.tsv
-NAMECONVERSION = $(CURDIR)/file_conversion.txt
+TIMEPOINTS = $(CURDIR)/$(BATCH).tpoints.tsv
+NAMECONVERSION = $(CURDIR)/$(BATCH).file_conversion.txt
 
-MISSING = $(CURDIR)/missing.txt
-ADDITIONALMISSING = $(CURDIR)/additional_missing.txt
+MISSING = $(CURDIR)/$(BATCH).missing.txt
+ADDITIONALMISSING = $(CURDIR)/$(BATCH).additional_missing.txt
 
-EMAP = $(CURDIR)/fileForCluster3.txt
-RENAMED = $(CURDIR)/fileForCluster3.renamed.txt
+EMAP = $(CURDIR)/$(BATCH).fileForCluster3.txt
+RENAMED = $(CURDIR)/$(BATCH).fileForCluster3.renamed.txt
 RESCALED = $(CURDIR)/emap.matrix.txt
 FDR = $(CURDIR)/emap.fdr.txt
 
