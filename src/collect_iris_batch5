@@ -74,6 +74,7 @@ if __name__ == "__main__":
                 # Pick the iris directory
                 if row[rep] == '-':
                     continue
+                row[rep] = '/'.join( row[rep].split('/')[::-1] )
                 dirs = list(filter(lambda x: os.path.isdir(os.path.join(
                     options.idir, row[rep],
                     x)) and x.startswith('JPG'),
