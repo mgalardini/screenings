@@ -67,9 +67,14 @@ if __name__ == "__main__":
         if c.lower() not in {x.lower() for x in conversion['orig']}:
             not_found.add( c.upper() )
     if len( not_found ) > 1:
+        nf = []
         for c in not_found:
-            print('%c not in the conversion table!'%c)
-        sys.exit(1)
+            print('%s not in the conversion table!'%c)
+            nf.append( [c, c.split('-')[0], c.split('-')[-1]] )
+        nf = pd.DataFrame(nf)
+        nf.columns = ['orig', '1', '2']
+        nf['orig'] = [x.upper() for x in nf['orig']]
+        conversion = pd.concat((conversion, pd.DataFrame(nf)))
 
     # Fix the column names
     m.columns = ['.'.join( (list(conversion.loc[conversion['orig'] == x]['1'])[0].upper(),
