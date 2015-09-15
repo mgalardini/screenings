@@ -12,7 +12,7 @@ RAWDIR = $(CURDIR)/$(BATCH).raw
 $(RAWDIR):
 	mkdir -p $(RAWDIR)
 
-FIXEDDIR = $(CURDIR)/$(BATCH).fixed
+FIXEDDIR = $(CURDIR)/fixed/$(BATCH)
 $(FIXEDDIR):
 	mkdir -p $(FIXEDDIR)
 
@@ -22,8 +22,8 @@ NAMECONVERSION = $(CURDIR)/$(BATCH).file_conversion.txt
 MISSING = $(CURDIR)/$(BATCH).missing.txt
 ADDITIONALMISSING = $(CURDIR)/$(BATCH).additional_missing.txt
 
-EMAP = $(CURDIR)/$(BATCH).fileForCluster3.txt
-RENAMED = $(CURDIR)/$(BATCH).fileForCluster3.renamed.txt
+EMAP = $(CURDIR)/fileForCluster3.txt
+RENAMED = $(CURDIR)/fileForCluster3.renamed.txt
 RESCALED = $(CURDIR)/emap.matrix.txt
 FDR = $(CURDIR)/emap.fdr.txt
 
