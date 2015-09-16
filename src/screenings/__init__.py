@@ -95,7 +95,7 @@ def fix_circularity(df,
 
     df.ix[(df['circularity'] < circularity) &
             (df['colony size'] < size),
-            'colony size'] = 0
+            'colony size'] = np.nan 
     try:
         df.ix[(df['circularity'] < circularity) &
                 (df['colony size'] < size),
