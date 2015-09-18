@@ -41,15 +41,19 @@ def get_options():
     parser.add_argument('odir', action='store',
                         help='Output directory')
 
-    parser.add_argument('--circularity', action='store',
+    parser.add_argument('--circularity1', action='store',
                 default=0.5,
                 type=float,
-                help='Circularity threshold [Default: 0.5]')
+                help='Circularity threshold for small colonies [Default: 0.5]')
+    parser.add_argument('--circularity2', action='store',
+                default=0.3,
+                type=float,
+                help='Circularity threshold for big colonies [Default: 0.3]')
     parser.add_argument('--size', action='store',
                 type=float,
-                default=1200,
-                help='Size threshold: colonies bigger than this won\'t'+
-                ' be checked for circularity [Default: 1200]')
+                default=1000,
+                help='Size threshold: colonies bigger than this will'+
+                ' be considered small [Default: 1000]')
     
     parser.add_argument('--ignore', action='store',
                         dest='ignore',
@@ -87,8 +91,12 @@ if __name__ == "__main__":
 
     # Fix circularity
     m = sc.fix_circularity(m,
-            options.circularity,
+            options.circularity1,
             options.size)
+    m = sc.fix_circularity(m,
+            options.circularity2,
+            options.size,
+            above=True)
 
     # Ignore some colonies
     ignore = set()
