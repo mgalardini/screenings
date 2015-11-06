@@ -1,0 +1,78 @@
+#!/usr/bin/env python
+
+# Copyright (C) <2015> EMBL-European Bioinformatics Institute
+
+# This program is free software: you can redistribute it and/or
+# modify it under the terms of the GNU General Public License as
+# published by the Free Software Foundation, either version 3 of
+# the License, or (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+
+# Neither the institution name nor the name screenings can
+# be used to endorse or promote products derived from this
+# software without prior written permission. For written
+# permission, please contact <marco@ebi.ac.uk>.
+
+# Products derived from this software may not be called
+# screenings nor may screenings appear in their names
+# without prior written permission of the developers.
+# You should have received a copy of the GNU General Public
+# License along with this program. If not, see
+# <http://www.gnu.org/licenses/>.
+
+__author__ = "Marco Galardini"
+__version__ = "0.0.1"
+
+def get_options():
+    import argparse
+
+    # create the top-level parser
+    description = "Unite two timepoints tables"
+    parser = argparse.ArgumentParser(description = description,
+                                     prog = 'fix_batch6')
+    parser.add_argument('file1', action='store',
+                        help='Table for replica 8/9')
+    parser.add_argument('file2', action='store',
+                        help='Table for replica 10')
+
+    parser.add_argument('--version', action='version',
+                         version='%(prog)s '+__version__)
+
+    return parser.parse_args()
+
+if __name__ == "__main__":
+    options = get_options()
+  
+    import csv
+
+    # Print header
+    print('\t'.join(['condition'] + ['%d_%s'%(x, y) for x in (10, 8, 9) for y in 'ABC']))
+    d1 = {}
+    with open(options.file1, 'r') as tsvfile:
+        for row in csv.DictReader(tsvfile, delimiter='\t'):
+            d1[row['condition']] = row
+    d2 = {}
+    with open(options.file2, 'r') as tsvfile:
+        for row in csv.DictReader(tsvfile, delimiter='\t'):
+            d2[row['condition']] = row
+
+    empty = {'condition':'-',
+             '10_A':'-',
+             '10_B':'-',
+             '10_C':'-',
+             '8_A':'-',
+             '8_B':'-',
+             '8_C':'-',
+             '9_A':'-',
+             '9_B':'-',
+             '9_C':'-',
+             }
+    for cond in sorted(set(d1).union(d2)):
+        print('\t'.join([cond] +
+                        [d2.get(cond, empty)['10_%s'%c] for c in 'ABC'] +
+                        [d1.get(cond, empty)['%d_%s'%(n, c)] for (n, c) in [(x, y) for x in range(8, 10) for y in 'ABC']] ))
+

@@ -73,6 +73,39 @@ def parse_names(infile, plate=None):
             yield r[4], r[6], (r[7], alphabetical.index(r[9])+1, int(r[8])), (
                     r[10], int(r[11]), int(r[12]))
 
+def fix_missing(df, size=7):
+    '''Report putative areas where colonies have not been pinned
+
+    Parameters
+    ----------
+    df : a DataFrame generated from Iris
+         "colony size" column should be present;
+         same as "row" and "column"
+    size : size of the empty areas that trigger their recognition 
+
+    Returns
+    -------
+    area: an iterable of (row, column) identifiers
+    '''
+    import networkx as nx
+
+    # Identify connected components in the "empty spots" graph
+    g = nx.Graph()
+
+    df = df.set_index(['row', 'column'])
+
+    for r, c in df[df['colony size'] == 0].index:
+        g.add_node((r, c))
+    for r, c in g.nodes():
+        for r1, c1 in g.nodes():
+            if r == r1 and c == c1:
+                continue
+            if r1 in range(r-1, r+2) and c1 in range(c-1, c+2):
+                g.add_edge((r, c), (r1, c1))
+
+    return [y for x in nx.connected_components(g)
+            if len(x) > size for y in x]
+
 def fix_circularity(df,
         circularity=0.5,
         size=1000,

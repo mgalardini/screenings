@@ -1,6 +1,10 @@
 BATCH = batch6
 IRIS = iris_0.9.4.71
 
+MINSIZE = 1900
+MAXSIZE = 1700
+COLOR = 
+
 PLATE = 8
 PLATEFILE = $(CURDIR)/plates.tsv
 BATCHDIR = ../../datasets/screens/BATCH6/
@@ -43,6 +47,25 @@ DEL = $(CURDIR)/deletion.matrix.txt
 DELFDR = $(CURDIR)/deletion.fdr.txt
 DELGENES = $(CURDIR)/deletion.genes.txt
 
+########################
+## Select time points ##
+########################
+
+ifeq ($(BATCH),batch5)
+  SELECT1=find $(BATCHDIR) -name '*.iris' | grep $(IRIS) | grep -v Keio | $(SRCDIR)/get_time_points_$(BATCH) - --size-min $(MINSIZE) --size-max $(MAXSIZE) $(COLOR) > $(TIMEPOINTS)
+  SELECT2=echo "nothing to be done here"
+  JOIN=echo "nothing to be done here"
+else
+  SELECT1=find $(BATCHDIR) -name '*.iris' | grep $(IRIS) | $(SRCDIR)/get_time_points_$(BATCH) - --exclude 10_A --exclude 10_B --exclude 10_C --size-min 1900 --size-max 1700 $(COLOR) > $(TIMEPOINTS).89
+  SELECT2=find $(BATCHDIR) -name '*.iris' | grep $(IRIS) | $(SRCDIR)/get_time_points_$(BATCH) - --exclude 9_A --exclude 9_B --exclude 9_C --exclude 8_A --exclude 8_B --exclude 8_C --size-min 1300 --size-max 2300 $(COLOR) > $(TIMEPOINTS).10
+  JOIN=$(SRCDIR)/fix_batch6 $(TIMEPOINTS).89 $(TIMEPOINTS).10 > $(TIMEPOINTS)
+endif
+
+$(TIMEPOINTS): $(BATCHDIR)
+	$(SELECT1)
+	$(SELECT2)
+	$(JOIN)
+
 #############
 ## Collect ##
 #############
@@ -62,7 +85,7 @@ RAWS = $(wildcard $(RAWDIR)/*.iris)
 FIXEDS = $(foreach RAW,$(RAWS),$(addprefix $(FIXEDDIR)/,$(addsuffix .iris,$(basename $(notdir $(RAW))))))
 
 $(FIXEDDIR)/%.iris: $(RAWDIR)/%.iris $(MISSING) $(PLATEFILE) $(FIXEDDIR)
-	$(SRCDIR)/fix_iris --circularity1 0.5 --size 1000 --circularity2 0.3 --ignore $(MISSING) --variance-size 0.9 --variance-circularity 0.95 $< $(PLATEFILE) $(FIXEDDIR)
+	$(SRCDIR)/fix_iris --circularity1 0.5 --size 1000 --circularity2 0.3 --ignore $(MISSING) --variance-size 0.9 --variance-circularity 0.95 $< $(PLATEFILE) $(FIXEDDIR) 
 
 ######################
 ## Post-processing  ##
@@ -112,10 +135,11 @@ $(RGENOTYPES): $(NGENOTYPES) $(RESCALED) $(FDR) $(ROARY) $(SNPS) $(SNPSDEL) $(SN
 	git commit -m "Updated phenotypes/genotypes report" && \
 	git push
 
+select: $(TIMEPOINTS)
 collect: $(NAMECONVERSION)
 pre-process: $(FIXEDS)
 post-process: $(RESCALED) $(FDR)
 deletion: $(DEL) $(DELFDR) $(DELGENES)
 reports: $(RPHENOTYPES) $(RGENOTYPES)
 
-.PHONY: collect pre-process post-process deletion reports
+.PHONY: select collect pre-process post-process deletion reports

@@ -1,0 +1,256 @@
+#!/usr/bin/env python
+
+# Copyright (C) <2015> EMBL-European Bioinformatics Institute
+
+# This program is free software: you can redistribute it and/or
+# modify it under the terms of the GNU General Public License as
+# published by the Free Software Foundation, either version 3 of
+# the License, or (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+
+# Neither the institution name nor the name screenings can
+# be used to endorse or promote products derived from this
+# software without prior written permission. For written
+# permission, please contact <marco@ebi.ac.uk>.
+
+# Products derived from this software may not be called
+# screenings nor may screenings appear in their names
+# without prior written permission of the developers.
+# You should have received a copy of the GNU General Public
+# License along with this program. If not, see
+# <http://www.gnu.org/licenses/>.
+
+__author__ = "Marco Galardini"
+__version__ = "0.0.1"
+
+def get_options():
+    import argparse
+
+    # create the top-level parser
+    description = "Predict the best time points for each condition"
+    parser = argparse.ArgumentParser(description = description,
+                                     prog = 'get_time_points')
+    parser.add_argument('files', action='store',
+                        help='Input files (use "-" for STDIN)')
+
+    parser.add_argument('--exclude', action='append',
+                        default=[],
+                        help='Replica to be excluded')
+                        
+    parser.add_argument('--size-min', action='store',
+                        type=float,
+                        default=1900,
+                        help='Colony size minimum median [Default: 1900]')
+    parser.add_argument('--size-max', action='store',
+                        type=float,
+                        default=1700,
+                        help='Colony size maximum median [Default: minimum + 2000]')
+    parser.add_argument('--size-mad', action='store',
+                        type=float,
+                        default=1000,
+                        help='MAD tolerance for colony size [Default: 1500]')
+    
+    parser.add_argument('--color', action='store_true',
+                        default=False,
+                        help='Handle color data [Default: size]')
+    parser.add_argument('--color-min', action='store',
+                        type=float,
+                        default=3,
+                        help='Colony log10 color minimum median [Default: 3]')
+    parser.add_argument('--color-max', action='store',
+                        type=float,
+                        default=4,
+                        help='Colony log10 color maximum median [Default: minimum + 3]')
+    parser.add_argument('--color-mad', action='store',
+                        type=float,
+                        default=3,
+                        help='MAD tolerance for colony size [Default: 3]')
+
+    parser.add_argument('--version', action='version',
+                         version='%(prog)s '+__version__)
+
+    return parser.parse_args()
+
+if __name__ == "__main__":
+    import screenings as sc
+    import os
+    import sys
+    import numpy as np
+    import pandas as pd
+    import itertools
+    from scipy.stats.mstats import mquantiles
+
+    options = get_options()
+   
+    exclude = {x for x in options.exclude}
+
+    if options.files == '-':
+        files = {x.rstrip() for x in sys.stdin}
+    else:
+        files = {x.rstrip() for x in open(options.files)}
+    singles = {'-'.join(os.path.split(x)[-1].split('.')[0].split('-')[:2]).lstrip()
+               for x in files}
+
+    tp = {}
+    corr = {}
+    for c in singles:
+        tp[c] = tp.get(c, {})
+        corr[c] = corr.get(c, {})
+        #print(c)
+        filez = {x for x in files if c in x}
+        filez = sorted(filez, key=lambda x: (x.split('/')[-1].split('-')[2].split('.')[0],
+                                             x.split('/')[-4],
+                                             x.split('/')[-1].split('_')[-1].split('.')[0],
+                                             ))
+        # Try to guess the best time point for each replica
+        #
+        dfs = {}
+        for f, i in zip(filez, range(1, 3*len(filez)+1, 3)):
+            m = sc.parse_iris(f)
+            # Save some parameters to guess the best time point
+            replica = f.split('/')[-1].split('-')[2].split('.')[0]
+            if replica in exclude:
+                continue
+            date = f.split('/')[-4]
+            time = f.split('/')[-1].split('_')[-1].split('.')[0]
+            # Temporarly save the dataframes to correlate them
+            if not options.color:
+                dfs[(replica, date, time)] = m['colony size']
+            else:
+                dfs[(replica, date, time)] = np.log10(m['colony color intensity'] + 1)
+            #
+            tp[c][replica] = tp[c].get(replica, {})
+            tp[c][replica][(date, time)] = [float(sc.median(m['colony size'])),
+                                        sc.mad(m['colony size'].as_matrix()),
+                                        float(sc.median(np.log10(m['colony color intensity'] + 1))),
+                                        sc.mad(np.log10(m['colony color intensity'].as_matrix() + 1)),
+                                        m[m['colony size'] > options.size_min].shape[0] / float(m.shape[0]),
+                                        m[m['circularity'] > 0.8].shape[0] / float(m.shape[0]),
+                                        m[(np.log10(m['colony color intensity'] + 1) > options.color_min) & 
+                                          (np.log10(m['colony color intensity'] + 1) < (options.color_min +
+                                                   options.color_max))].shape[0] / float(m.shape[0]),
+                                        mquantiles(m['colony size'],
+                                                   prob=[0.25, 0.75]),
+                                        mquantiles(np.log10(m['colony color intensity'] + 1),
+                                                   prob=[0.25, 0.75]),]
+        
+        dfs = pd.DataFrame(dfs)
+        corr[c] = dfs.corr()
+
+    # Print header
+    print('\t'.join(['condition'] + ['%d_%s'%(x, y) for x in (10, 8, 9) for y in 'ABC']))
+    # Define the best of each replica
+    for cond in sorted(tp):
+        reps = tp[cond]
+        s = []
+        c = []
+        sbest = []
+        cbest = []
+        for r, dt in reps.items():
+            # by size
+            sizes = sorted([x for (x, y) in dt.items()
+                        if options.size_min < y[0] < (options.size_min +
+                                                      options.size_max)
+                        and y[1] < options.size_mad],
+                        # Sorting scheme (the lower the better):
+                        # Circularity over threshold
+                        # Colony sizes over minimum threshold
+                        # Size of the IQR (negative)
+                        key=lambda k:(dt[k][5], dt[k][4], dt[k][7][0] - dt[k][7][1]))[::-1]
+            # by color
+            colors = sorted([x for (x, y) in dt.items()
+                        if options.color_min < y[2]
+                        and y[3] < options.color_mad
+                        and options.size_min < y[0] < (options.size_min +
+                                                       options.size_max)
+                        and y[1] < options.size_mad],
+                        # Sorting scheme (the lower the better):
+                        # Color MAD (negative)
+                        # Circularity over threshold
+                        # Size of the IQR
+                        # Colony colors inside the threshold
+                        key=lambda k:(-dt[k][3], dt[k][5], dt[k][7][1] - dt[k][7][0], dt[k][6]))[::-1]
+            #
+            for d, t in sizes:
+                s.append( (r, d, t, dt[(d, t)][0]) )
+            for d, t in colors:
+                c.append( (r, d, t, dt[(d, t)][7][1] - dt[(d, t)][7][0], dt[(d, t)][2]) )
+        
+        if len(s) > 0 and not options.color:
+            s = pd.DataFrame(s)
+            s.columns = ['rep', 'd', 't', 'size']
+            s.set_index(['rep', 'd', 't'], inplace=True)
+            
+            # Pick the time points that give the best mean correlation
+            # Test all possible combinations
+            comb = {}
+            values = [[(x, y[0], y[1]) for y in s.loc[x].index]
+                      for x in {k[0] for k in s.index}]
+            for i in itertools.product(*values):
+                comb[i] = np.mean(corr[cond].loc[[x for x in i],
+                                      [x for x in i]].as_matrix().flatten())
+            #    comb[i] = s.loc[[x for x in i]]['size'].var()
+            #sbest = sorted(comb, key=lambda x: comb[x])[0]
+            sbest = sorted(comb, key=lambda x: comb[x])[-1]
+
+        if len(c) > 0 and options.color:
+            c = pd.DataFrame(c)
+            c.columns = ['rep', 'd', 't', 'IQR', 'median']
+            c.set_index(['rep', 'd', 't'], inplace=True)
+
+            # Pick the most (similar) spread time points
+            # Test all possible combinations
+            comb = {}
+            values = [[(x, y[0], y[1]) for y in c.loc[x].index]
+                      for x in {k[0] for k in c.index}]
+            for i in itertools.product(*values):
+                #comb[i] = np.mean(corr[cond].loc[[x for x in i],
+                #                      [x for x in i]].as_matrix().flatten())
+                comb[i] = c.loc[[x for x in i]]['IQR'].median(), -c.loc[[x for x in i]]['median'].median()
+            cbest = sorted(comb, key=lambda x: (comb[x][0], comb[x][1]))[-1]
+            #cbest = sorted(comb, key=lambda x: comb[x])[-1]
+
+        if not options.color:
+            sd = {}
+            used = set()
+            for r in ['%d_%s'%(x, y) for x in (10, 8, 9) for y in 'ABC']:
+                rfiles = [x for x in sorted(sbest)
+                         if x[0] == r
+                         and x not in used]
+                if len(rfiles) > 0:
+                    sd[r] = rfiles[0]
+                    used.add(rfiles[0])
+                else:
+                    # no non-standard replicas in this batch
+                    sd[r] = '--'
+            sbest = ['/'.join(sd.get(x, '--')[1:]) for x in ['%d_%s'%(k, y)
+                                                             for k in (10, 8, 9)
+                                                             for y in 'ABC']]
+            while len(sbest) < 9:
+                sbest.append('-')
+            print('\t'.join([cond,
+                            '\t'.join(sbest)]))
+        else:
+            cd = {}
+            used = set()
+            for r in ['%d_%s'%(x, y) for x in (10, 8, 9) for y in 'ABC']:
+                rfiles = [x for x in sorted(cbest)
+                         if x[0] == r
+                         and x not in used]
+                if len(rfiles) > 0:
+                    cd[r] = rfiles[0]
+                    used.add(rfiles[0])
+                else:
+                    # no non-standard replicas in this batch
+                    cd[r] = '--'
+            cbest = ['/'.join(cd.get(x, '--')[1:]) for x in ['%d_%s'%(k, y)
+                                                             for k in (10, 8, 9)
+                                                             for y in 'ABC']]
+            while len(cbest) < 9:
+                cbest.append('-')
+            print('\t'.join([cond,
+                            '\t'.join(cbest)]))

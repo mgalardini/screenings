@@ -41,6 +41,11 @@ def get_options():
     parser.add_argument('odir', action='store',
                         help='Output directory')
 
+    parser.add_argument('--missing', action='store',
+                default=8,
+                type=int,
+                help='Missing areas threshold [Default: 8 contiguous spots]')
+    
     parser.add_argument('--circularity1', action='store',
                 default=0.5,
                 type=float,
@@ -88,6 +93,13 @@ if __name__ == "__main__":
             options.platefile,
             platenumber=plate)
     header = sc.get_header(options.irisfile) 
+
+    # Identify pinning problems
+    remove = {(r, c)
+            for r, c in sc.fix_missing(m, size=options.missing)}
+    if len(remove) > 0:
+        print('\t'.join([options.irisfile, str(len(remove))]))
+        m = sc.remove_colonies(m, remove)
 
     # Fix circularity
     m = sc.fix_circularity(m,
