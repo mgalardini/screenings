@@ -21,7 +21,7 @@ $(RAWDIR):
 
 FIXEDDIR = $(CURDIR)/fixed/$(BATCH)
 ifeq ($(COLOR),--color)
-  FIXEDDIR=$(CURDIR)/fixed/$(BATCH).color
+  FIXEDDIR=$(CURDIR)/fixed.color/$(BATCH).color
 endif
 $(FIXEDDIR):
 	mkdir -p $(FIXEDDIR)
