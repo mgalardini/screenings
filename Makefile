@@ -13,10 +13,16 @@ SRCDIR = $(CURDIR)/src
 NOTEBOOKSDIR = $(CURDIR)/notebooks
 
 RAWDIR = $(CURDIR)/$(BATCH).raw
+ifeq ($(COLOR),--color)
+  RAWDIR=$(CURDIR)/$(BATCH).raw.color
+endif
 $(RAWDIR):
 	mkdir -p $(RAWDIR)
 
 FIXEDDIR = $(CURDIR)/fixed/$(BATCH)
+ifeq ($(COLOR),--color)
+  FIXEDDIR=$(CURDIR)/fixed/$(BATCH).color
+endif
 $(FIXEDDIR):
 	mkdir -p $(FIXEDDIR)
 
@@ -51,6 +57,10 @@ DELGENES = $(CURDIR)/deletion.genes.txt
 ## Select time points ##
 ########################
 
+ifeq ($(COLOR),--color)
+  TIMEPOINTS=$(CURDIR)/$(BATCH).tpoints.color.tsv
+endif
+
 ifeq ($(BATCH),batch5)
   SELECT1=find $(BATCHDIR) -name '*.iris' | grep $(IRIS) | grep -v Keio | $(SRCDIR)/get_time_points_$(BATCH) - --size-min $(MINSIZE) --size-max $(MAXSIZE) $(COLOR) > $(TIMEPOINTS)
   SELECT2=echo "nothing to be done here"
@@ -69,6 +79,10 @@ $(TIMEPOINTS): $(BATCHDIR)
 #############
 ## Collect ##
 #############
+
+ifeq ($(COLOR),--color)
+  NAMECONVERSION=$(CURDIR)/$(BATCH).file_conversion.color.txt
+endif
 
 $(NAMECONVERSION): $(TIMEPOINTS) $(RAWDIR)
 	$(SRCDIR)/collect_iris_$(BATCH) $(TIMEPOINTS) $(BATCHDIR) $(RAWDIR) $(PLATE) $(IRIS) > $(NAMECONVERSION)
