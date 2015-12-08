@@ -34,7 +34,8 @@ ADDITIONALMISSING = $(CURDIR)/$(BATCH).additional_missing.txt
 
 EMAP = $(CURDIR)/fileForCluster3.txt
 RENAMED = $(CURDIR)/fileForCluster3.renamed.txt
-RESCALED = $(CURDIR)/emap.matrix.txt
+RESCALED = $(CURDIR)/fileForCluster3.rescaled.txt
+MERGED = $(CURDIR)/emap.matrix.txt
 FDR = $(CURDIR)/emap.fdr.txt
 
 # Name conversion
@@ -111,8 +112,11 @@ $(RENAMED): $(EMAP)
 $(RESCALED): $(RENAMED)
 	$(SRCDIR)/rescale_sscores $(RENAMED) > $(RESCALED)
 
-$(FDR): $(RESCALED)
-	$(SRCDIR)/fdr_matrix $(RESCALED) $(FDR)
+$(MERGED): $(RESCALED)
+	$(SRCDIR)/merge_columns $(RESCALED) > $(MERGED)
+
+$(FDR): $(MERGED)
+	$(SRCDIR)/fdr_matrix $(MERGED) $(FDR)
 
 ######################################
 ## Deletion screen post-processing  ##
