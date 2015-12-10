@@ -31,7 +31,7 @@ def get_header(infile):
     '''Get the header of an Iris file'''
     return [l.strip() for (i,l) in zip(range(6), open(infile))]
 
-def parse_iris(infile, platefile=None, platenumber=None):
+def parse_iris(infile, platefile=None, platenumber=None, skiprows=6):
     '''Parse an Iris output
 
     Returns a Pandas dataframe.
@@ -39,7 +39,7 @@ def parse_iris(infile, platefile=None, platenumber=None):
     '''
     import pandas as pd
 
-    plate = pd.read_table(infile, skiprows=6)
+    plate = pd.read_table(infile, skiprows=skiprows)
 
     # Add the spots identifiers
     if platefile is not None:
