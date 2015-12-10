@@ -1,0 +1,26 @@
+#!/usr/bin/Rscript
+
+args <- commandArgs(trailingOnly = TRUE)
+
+correctSurface<-function(vector,d=2){
+  df<-data.frame(row=rep(1:32,each=48),column=rep(1:48,32),variable=vector)
+  
+  #calculate the 2D surface
+  linear.model = lm(variable ~ poly(row, column, degree=d), data=df)
+  prediction = predict.lm(linear.model, df)
+  
+  #get the surface corrected values, set the plate mean
+  df$variable.surface.corrected = df$variable - prediction +mean(vector,na.rm=T)
+  
+  #make sure nothing is negative after the corrections
+  df$variable.surface.corrected[df$variable.surface.corrected<0]=0
+  
+  #if it was zero before, make sure the surface correction didn't set it to another value
+  df$variable.surface.corrected[df$variable==0]=0
+  return(df$variable.surface.corrected)
+  
+}
+
+df <- read.table(args[1], sep='\t', header=T, comment.char='#')
+df$colony.size <- correctSurface(df$colony.size)
+write.table(df, args[2], quote=F, sep='\t')
