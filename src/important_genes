@@ -50,6 +50,17 @@ def get_options():
                         nargs='+',
                         default=['Deletion'],
                         help='Genes to consider [Default: Deletion]')
+    parser.add_argument('--no-filter', action='store_true',
+                        default=False,
+                        help='Don\'t consider filters')
+    
+    parser.add_argument('--threshold', action='store',
+                        type=float,
+                        default=0.,
+                        help='S-score threshold [Default = 0]')
+    parser.add_argument('--absolute', action='store_true',
+                        default=False,
+                        help='Absolute threshold [Default: false]')
     
     parser.add_argument('--version', action='version',
                          version='%(prog)s '+__version__)
@@ -73,8 +84,14 @@ if __name__ == "__main__":
 
     # Output the relevant genes for each condition
     for c in v.columns:
-        genes = list(v[c].dropna().index)
-        print('\t'.join( (c, ' '.join([x.split()[0]
-              for x in genes
-              if x.split(' - ')[1].split('-')[0] in options.filter])) ))
-
+        if options.absolute:
+            genes = list(v[abs(v) > abs(options.threshold)][c].dropna().index)
+        else:
+            genes = list(v[v < options.threshold][c].dropna().index)
+        if not options.no_filter:
+            print('\t'.join( (c, ' '.join([x.split()[0]
+                  for x in genes
+                  if x.split(' - ')[1].split('-')[0] in options.filter])) ))
+        else:
+            print('\t'.join( (c, ' '.join([x.split()[0]
+                  for x in genes])) ))

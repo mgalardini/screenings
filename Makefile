@@ -52,10 +52,14 @@ SNPSFUNCTIONAL = $(CURDIR)/SNPs_functional_matrix.tsv
 
 # External data: deletion screen
 DELDIR = $(CURDIR)/deletion_screen
-DELIN = $(DELDIR)/size_NormScores_cleaner_b45_9subB.txt
+DELIN = $(DELDIR)/Cleaner_NormScores_joinedConds.txt
 DEL = $(CURDIR)/deletion.matrix.txt
 DELFDR = $(CURDIR)/deletion.fdr.txt
 DELGENES = $(CURDIR)/deletion.genes.txt
+DELALLIN = $(DELDIR)/NTB456.txt
+DELALL = $(CURDIR)/deletion.all.matrix.txt
+DELALLFDR = $(CURDIR)/deletion.all.fdr.txt
+DELALLGENES = $(CURDIR)/deletion.all.genes.txt
 
 ########################
 ## Select time points ##
@@ -128,14 +132,26 @@ $(FDR): $(MERGED)
 ## Deletion screen post-processing  ##
 ######################################
 
-$(DEL): $(DELIN) $(RESCALED)
-	$(SRCDIR)/shared_matrix $(DELIN) $(RESCALED) $(DEL) --index1 genes --index2 Gene
+# DELOPTIONS = --threshold -12 --absolute
+DELOPTIONS =
+
+$(DEL): $(DELIN)
+	cp $< $@
 
 $(DELFDR): $(DEL)
 	$(SRCDIR)/fdr_matrix $(DEL) $(DELFDR) --index genes
 
 $(DELGENES): $(DEL) $(DELFDR)
-	$(SRCDIR)/important_genes $(DEL) $(DELFDR) --index1 genes --index2 genes --filter Deletion > $(DELGENES)
+	$(SRCDIR)/important_genes $(DEL) $(DELFDR) --index1 genes --index2 genes --filter Deletion $(DELOPTIONS) > $(DELGENES)
+
+$(DELALL): $(DELALLIN)
+	cp $< $@
+
+$(DELALLFDR): $(DELALL)
+	$(SRCDIR)/fdr_matrix $(DELALL) $(DELALLFDR) --index genes
+
+$(DELALLGENES): $(DELALL) $(DELALLFDR)
+	$(SRCDIR)/important_genes $(DELALL) $(DELALLFDR) --index1 genes --index2 genes --no-filter $(DELOPTIONS) > $(DELALLGENES)
 
 ########################
 ## Reports generation ##
@@ -163,7 +179,7 @@ select: $(TIMEPOINTS)
 collect: $(NAMECONVERSION)
 pre-process: $(FIXEDS)
 post-process: $(RESCALED) $(FDR)
-deletion: $(DEL) $(DELFDR) $(DELGENES)
+deletion: $(DEL) $(DELFDR) $(DELGENES) $(DELALL) $(DELALLFDR) $(DELALLGENES)
 reports: $(RPHENOTYPES) $(RGENOTYPES)
 
 .PHONY: select collect pre-process post-process deletion reports
