@@ -32,8 +32,11 @@ NAMECONVERSION = $(CURDIR)/$(BATCH).file_conversion.txt
 MISSING = $(CURDIR)/$(BATCH).missing.txt
 ADDITIONALMISSING = $(CURDIR)/$(BATCH).additional_missing.txt
 
+SEQUENCED = $(CURDIR)/sequenced.txt
+
 EMAP = $(CURDIR)/fileForCluster3.txt
 RENAMED = $(CURDIR)/fileForCluster3.renamed.txt
+RESTRICTED = $(CURDIR)/fileForCluster3.restricted.txt
 RESCALED = $(CURDIR)/fileForCluster3.rescaled.txt
 MERGED = $(CURDIR)/emap.matrix.txt
 FDR = $(CURDIR)/emap.fdr.txt
@@ -109,8 +112,11 @@ $(FIXEDDIR)/%.iris: $(RAWDIR)/%.iris $(MISSING) $(PLATEFILE) $(FIXEDDIR)
 $(RENAMED): $(EMAP)
 	$(SRCDIR)/rename_matrix $(EMAP) $(CONVERSION) $(RENAMED)
 
-$(RESCALED): $(RENAMED)
-	$(SRCDIR)/rescale_sscores $(RENAMED) > $(RESCALED)
+$(RESTRICTED): $(RENAMED) $(SEQUENCED)
+	$(SRCDIR)/remove_strains $(RENAMED) $(SEQUENCED) $(RESTRICTED)
+
+$(RESCALED): $(RESTRICTED)
+	$(SRCDIR)/rescale_sscores $(RESTRICTED) > $(RESCALED)
 
 $(MERGED): $(RESCALED)
 	$(SRCDIR)/merge_columns $(RESCALED) > $(MERGED)
