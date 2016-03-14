@@ -90,7 +90,7 @@ if __name__ == "__main__":
 
     # Read the input matrix
     m = pd.read_table(options.inmatrix)
-    m.set_index(options.index, inplace=True)
+    m.set_index(m.columns[0], inplace=True)
     
     print('Applying FDR filtering (5%)')
    

@@ -50,7 +50,7 @@ if __name__ == "__main__":
     options = get_options()
 
     e = pd.read_table(options.infile)
-    e.set_index(['Gene'], inplace=True)
+    e.set_index(e.columns[0], inplace=True)
 
     cs = {x for x in e.columns
           if x.endswith('.1')
