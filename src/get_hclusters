@@ -1,0 +1,197 @@
+#!/usr/bin/env python
+
+# Copyright (C) <2015> EMBL-European Bioinformatics Institute
+
+# This program is free software: you can redistribute it and/or
+# modify it under the terms of the GNU General Public License as
+# published by the Free Software Foundation, either version 3 of
+# the License, or (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+
+# Neither the institution name nor the name 2015_stm_ec can
+# be used to endorse or promote products derived from this
+# software without prior written permission. For written
+# permission, please contact <marco@ebi.ac.uk>.
+
+# Products derived from this software may not be called
+# 2015_stm_ec nor may 2015_stm_ec appear in their names
+# without prior written permission of the developers.
+# You should have received a copy of the GNU General Public
+# License along with this program. If not, see
+# <http://www.gnu.org/licenses/>.
+
+__author__ = "Marco Galardini"
+__version__ = "0.0.1"
+
+def get_options():
+    import argparse
+
+    # create the top-level parser
+    description = "Get complexes according to hierarchical clustering"
+    parser = argparse.ArgumentParser(description = description,
+                                     prog = 'get_hclusters')
+    parser.add_argument('inmatrix', action='store',
+                        help='Input matrix file')
+    parser.add_argument('linkage', action='store',
+                        help='Output file to save the linkage')
+    parser.add_argument('distfile', action='store',
+                        help='Output file to report the used dendrogram distance')
+
+    parser.add_argument('--iterations', action='store',
+                        type=int,
+                        default=10,
+                        help='Distance range size [Default: 10]')
+    parser.add_argument('--score', action='store',
+                        type=float,
+                        default=0.3,
+                        help='Min score threshold [Default: 0.3]')
+    parser.add_argument('--distance', action='store_true',
+                        default=False,
+                        help='Use maximum distance that satisfies the score criteria')
+    parser.add_argument('--single', action='store_true',
+                        default=False,
+                        help='Use method=single [Default: average]')
+    
+    parser.add_argument('--version', action='version',
+                         version='%(prog)s '+__version__)
+
+    return parser.parse_args()
+
+if __name__ == "__main__":
+    import sys
+    import pandas as pd
+    import numpy as np
+    from scipy import cluster
+    import fastcluster as fst
+    
+    options = get_options()
+
+    # Read the input matrix
+    m = pd.read_table(options.inmatrix)
+    m.set_index(['Gene'], inplace=True)
+   
+    # Compute the linkage matrix
+    # The scar tissue code below can be used if we assume that
+    # the content of the matrix is already a distance metric
+    #linkage = fst.linkage(1 - m.as_matrix()[
+    #             np.triu_indices(m.shape[0], k=1)])
+    if options.single:
+        method = 'single'
+    else:
+        method = 'average'
+    try:
+        linkage = fst.linkage(m.as_matrix(), method=method, metric='euclidean')
+    except FloatingPointError:
+        # Some NaNs in there
+        # Spit out a warning, then, put them to zero and try again
+        sys.stderr.write('NaNs in the input matrix\n')
+        sys.stderr.write('They have been zeroed but caution with the results!\n')
+        m[np.isnan(m)] = 0
+        linkage = fst.linkage(m.as_matrix(), method=method, metric='euclidean')
+
+    # Save linkage matrix, save time
+    np.savetxt(options.linkage, linkage)
+    
+    # Generate a range of linkage distances
+    # and collect some stats on the resulting clusters
+    # we impose a minimum correlation on the resulting cluster
+    # and around that value maximise the number of clusters
+    distances = np.linspace(0,
+                  max(cluster.hierarchy.maxdists(linkage)),
+                  num=options.iterations)
+
+    d = {}
+    for dist in distances:
+        clusters = cluster.hierarchy.fcluster(linkage,
+                dist, criterion='distance')
+        
+        single = 0
+        values = []
+        sizes = []
+        
+        for c in set(clusters):
+            v = m.as_matrix()[clusters == c][:, clusters == c]
+            if len(v.shape) == 0:
+                single += 1
+                continue
+            elif v.shape == (1, 1) or v.shape == (1,):
+                single += 1
+                continue
+            v1 = v[np.triu_indices(v.shape[0], k=1)]
+            mean = v1.mean()
+            if np.isnan(mean):
+                sys.stderr.write('Encountered NaN for dist. %.7f\n'%dist)
+                continue  
+            values.append(mean)
+            
+            sizes.append(v.shape[0])
+        
+        try:
+            mv = min(values)
+        except:
+            mv = np.nan
+
+        d[dist] = (single, values, mv, sizes)
+
+    # Print the statistics
+    sys.stderr.write('\t'.join(['Distance',
+                                'Singletons',
+                                'Clusters',
+                                'Mean score',
+                                'Min avg score within cluster'
+                                'Mean cluster size',
+                                'Max cluster size']))
+    sys.stderr.write('\n')
+    for k in sorted(d):
+        try:
+            mv = max(d[k][3])
+        except:
+            mv = np.nan
+        sys.stderr.write('\t'.join((str(k),
+                        str(d[k][0]),
+                        str(len(d[k][1])),
+                        str(np.array(d[k][1]).mean()),
+                        str(d[k][2]),
+                        str(np.array(d[k][3]).mean()),
+                        str(mv))))
+        sys.stderr.write('\n')
+
+    # Pick the maximum distance that satisfies the
+    # minimum correlation criteria
+    # then sort them by number of clusters
+    if options.distance:
+        lsorted = sorted([x for x in d if d[x][2] >= options.score],
+                key=lambda x: x)
+        if len(lsorted) == 0:
+            sys.stderr.write('No hierarchical distance above threshold\n')
+            sys.exit(0)
+        finaldist = lsorted[-1]
+    else:
+        lsorted = sorted([x for x in d if d[x][2] >= options.score],
+                key=lambda x: len(d[x][1]))
+        if len(lsorted) == 0:
+            sys.stderr.write('No hierarchical distance above threshold\n')
+            sys.exit(0)
+        finaldist = lsorted[-1]
+
+    sys.stderr.write('\nSelected distance threshold: %.7f\n'%finaldist)
+    # Save it to file
+    f = open(options.distfile, 'w')
+    f.write('%f\n'%finaldist)
+    f.close()
+
+    # Get the clusters, output them
+    clusters = cluster.hierarchy.fcluster(linkage,
+                finaldist, criterion='distance')
+
+    print('#gene\tcluster')
+    for c in set(clusters):
+        names = m.columns[clusters == c]
+        if len(names) == 1:
+            continue
+        for n in names:
+            print('\t'.join([n, 'cluster_%d'%c]))

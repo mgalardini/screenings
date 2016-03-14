@@ -1,0 +1,89 @@
+#!/usr/bin/env python
+
+# Copyright (C) <2015> EMBL-European Bioinformatics Institute
+
+# This program is free software: you can redistribute it and/or
+# modify it under the terms of the GNU General Public License as
+# published by the Free Software Foundation, either version 3 of
+# the License, or (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+
+# Neither the institution name nor the name 2015_stm_ec can
+# be used to endorse or promote products derived from this
+# software without prior written permission. For written
+# permission, please contact <marco@ebi.ac.uk>.
+
+# Products derived from this software may not be called
+# 2015_stm_ec nor may 2015_stm_ec appear in their names
+# without prior written permission of the developers.
+# You should have received a copy of the GNU General Public
+# License along with this program. If not, see
+# <http://www.gnu.org/licenses/>.
+
+__author__ = "Marco Galardini"
+__version__ = "0.0.1"
+
+def get_options():
+    import argparse
+
+    # create the top-level parser
+    description = "Spit out a correlation matrix"
+    parser = argparse.ArgumentParser(description = description,
+                                     prog = 'do_correlation')
+    parser.add_argument('inmatrix', action='store',
+                        help='Input matrix file')
+    parser.add_argument('outmatrix', action='store',
+                        help='Output matrix file')
+
+    parser.add_argument('--filter', action='store_true',
+        default=False,
+        help='Filter strains/conditions that are always NaN [Default: no]')
+    parser.add_argument('--pearson', action='store_true',
+        default=False,
+        help='Use Pearson correlation [Default: Spearman]')
+    parser.add_argument('--columns', action='store_true',
+        default=False,
+        help='Correlate columns [Default: rows]')
+    
+    parser.add_argument('--version', action='version',
+                         version='%(prog)s '+__version__)
+
+    return parser.parse_args()
+
+if __name__ == "__main__":
+    import numpy as np
+    import pandas as pd
+    options = get_options()
+
+    # Read the input matrix
+    m = pd.read_table(options.inmatrix)
+    m.set_index(m.columns[0], inplace=True)
+    
+    if options.pearson:
+        method = 'pearson'
+    else:
+        method = 'spearman'
+
+    if options.filter:
+        # Remove those strains that are always nan
+        remove = {i for i in m.index
+                  if list(np.isnan(m.ix[i])).count(True) == len(m.columns)}
+        m = m.drop(remove)
+        # Same for conditions
+        remove = {i for i in m.T.index
+                  if list(np.isnan(m.T.ix[i])).count(True) == len(m.T.columns)}
+        m = m.drop(remove)
+
+    # Run the correlation
+    if not options.columns:
+        corr = m.T.corr(method=method)
+    else:
+        corr = m.corr(method=method)
+        corr.index.name = 'Gene'
+
+    # Output the matrix
+    corr.to_csv(options.outmatrix, sep='\t')
