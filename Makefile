@@ -60,6 +60,7 @@ DELALLIN = $(DELDIR)/NTB456.txt
 DELALL = $(CURDIR)/deletion.all.matrix.txt
 DELALLFDR = $(CURDIR)/deletion.all.fdr.txt
 DELALLGENES = $(CURDIR)/deletion.all.genes.txt
+DELALLCLUSTERS = $(CURDIR)/deletion.all.clusters.txt
 
 ########################
 ## Select time points ##
@@ -153,6 +154,14 @@ $(DELALLFDR): $(DELALL)
 $(DELALLGENES): $(DELALL) $(DELALLFDR)
 	$(SRCDIR)/important_genes $(DELALL) $(DELALLFDR) --index1 genes --index2 genes --no-filter $(DELOPTIONS) > $(DELALLGENES)
 
+#############################################
+## Cluster conditions in chemical genomics ##
+#############################################
+
+$(DELALLCLUSTERS): $(DELALL)
+	$(SRCDIR)/do_correlation $(DELALL) deletion.all.correlation.txt --filter --pearson --columns
+	$(SRCDIR)/get_hclusters deletion.all.correlation.txt deletion.all.linkage.txt deletion.all.dendrogram.txt --iterations 100 --score 0.2 --distance > $(DELALLCLUSTERS)
+
 ########################
 ## Reports generation ##
 ########################
@@ -180,6 +189,7 @@ collect: $(NAMECONVERSION)
 pre-process: $(FIXEDS)
 post-process: $(RESCALED) $(FDR)
 deletion: $(DEL) $(DELFDR) $(DELGENES) $(DELALL) $(DELALLFDR) $(DELALLGENES)
+clusters: $(DELALLCLUSTERS)
 reports: $(RPHENOTYPES) $(RGENOTYPES)
 
-.PHONY: select collect pre-process post-process deletion reports
+.PHONY: select collect pre-process post-process deletion clusters reports
