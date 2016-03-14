@@ -136,7 +136,7 @@ $(FDR): $(MERGED)
 DELOPTIONS =
 
 $(DEL): $(DELIN)
-	cp $< $@
+	$(SRCDIR)/remove_duplicates $< $@
 
 $(DELFDR): $(DEL)
 	$(SRCDIR)/fdr_matrix $(DEL) $(DELFDR) --index genes
@@ -145,7 +145,7 @@ $(DELGENES): $(DEL) $(DELFDR)
 	$(SRCDIR)/important_genes $(DEL) $(DELFDR) --index1 genes --index2 genes --filter Deletion $(DELOPTIONS) > $(DELGENES)
 
 $(DELALL): $(DELALLIN)
-	cp $< $@
+	$(SRCDIR)/remove_duplicates $< $@
 
 $(DELALLFDR): $(DELALL)
 	$(SRCDIR)/fdr_matrix $(DELALL) $(DELALLFDR) --index genes

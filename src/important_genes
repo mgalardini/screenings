@@ -73,11 +73,11 @@ if __name__ == "__main__":
 
     # Read the input matrix
     m = pd.read_table(options.inmatrix)
-    m.set_index(options.index1, inplace=True)
+    m.set_index(m.columns[0], inplace=True)
     
     # Read the FDR
     f = pd.read_table(options.fdrmatrix)
-    f.set_index(options.index2, inplace=True)
+    f.set_index(f.columns[0], inplace=True)
 
     # Apply the FDR filter
     v = m[f < 0.05]

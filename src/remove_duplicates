@@ -31,88 +31,35 @@ def get_options():
     import argparse
 
     # create the top-level parser
-    description = "Apply column-wise 0.05 FDR correction"
+    description = "Quickly remove duplicates from an EMAP matrix"
     parser = argparse.ArgumentParser(description = description,
-                                     prog = 'fdr_matrix')
+                                     prog = 'remove_duplicates')
     parser.add_argument('inmatrix', action='store',
                         help='Input matrix file')
     parser.add_argument('outmatrix', action='store',
                         help='Output matrix file')
 
-    parser.add_argument('--index', action='store',
-                        default='Gene',
-                        help='Index column [Default: "Gene"]')
-    
     parser.add_argument('--version', action='version',
                          version='%(prog)s '+__version__)
 
     return parser.parse_args()
 
-def mad(data, c=0.6745):
-    '''
-    Compute the MAD
-    
-    Equivalent to R's mad function
-    '''
-    import numpy as np
-    
-    data = np.ma.masked_array(data.as_matrix(),
-               np.isnan(data.as_matrix()))
-
-    return np.ma.median(np.ma.fabs(data - np.ma.median(data))) / c
-
-
-def median(data):
-    import numpy as np
-
-    data = np.ma.masked_array(data.as_matrix(),
-                   np.isnan(data.as_matrix()))
-    
-    return np.ma.median(data)
-
-def get_Zscore(values):
-    return (values.as_matrix()-median(values))/mad(values)
-
-def get_sf(values):
-    return stats.norm.sf(abs(values))*2
-
-def correct_pvals(values):
-    return fdrcorrection0(values,
-                        alpha=0.05,
-                        )[1]
-
 if __name__ == "__main__":
     import pandas as pd
     import numpy as np
-    from scipy import stats
-    from statsmodels.sandbox.stats.multicomp import fdrcorrection0
     options = get_options()
 
     # Read the input matrix
     m = pd.read_table(options.inmatrix)
-    m.set_index(options.index, inplace=True)
+    m.set_index(m.columns[0], inplace=True)
     
-    print('Applying FDR filtering (5%)')
-   
-    f = {}
-    for c in m:
-        mz = get_Zscore(m[c].dropna())
-        mp = get_sf(mz)
-        mf = correct_pvals(mp)
-        mf = pd.Series(mf)
-        mf.index = m[c].dropna().index
-        f[c] = mf
-    mf = pd.DataFrame(f)
+    un = set(m.index)
+    keep = []
+    for s in sorted(un):
+        pos = np.arange(m.shape[0])[m.index == s]
+        keep.append(pos[0])
 
-    v = mf[mf < 0.05]
-    blank = set()
-    for gene in mf.index:
-        if v.loc[gene].dropna().shape[0] == 0:
-            blank.add(gene)
-
-    # Save the FDR p-values
-    mf = mf.reindex_axis(sorted(mf.columns), axis=1)
-    mf.to_csv(options.outmatrix, sep='\t')
-
-    print('Blank rows: %d (%.1f%%)'%(len(blank),
-          len(blank)*100.0/len(m.index)))
+    o = pd.DataFrame(m.as_matrix()[keep, :],
+                     index=m.index[keep],
+                     columns=m.columns)
+    o.to_csv(options.outmatrix, sep='\t')
