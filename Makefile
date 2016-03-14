@@ -62,6 +62,12 @@ DELALLFDR = $(CURDIR)/deletion.all.fdr.txt
 DELALLGENES = $(CURDIR)/deletion.all.genes.txt
 DELALLCLUSTERS = $(CURDIR)/deletion.all.clusters.txt
 
+# Merging conditions
+SHARED = $(DELDIR)/shared_conditions.txt
+MERGEDDIR = $(CURDIR)/merged
+$(MERGEDDIR):
+	mkdir -p $(MERGEDDIR)
+
 ########################
 ## Select time points ##
 ########################
@@ -154,13 +160,16 @@ $(DELALLFDR): $(DELALL)
 $(DELALLGENES): $(DELALL) $(DELALLFDR)
 	$(SRCDIR)/important_genes $(DELALL) $(DELALLFDR) --index1 genes --index2 genes --no-filter $(DELOPTIONS) > $(DELALLGENES)
 
-#############################################
-## Cluster conditions in chemical genomics ##
-#############################################
+##############################################
+## Merge conditions using chemical genomics ##
+##############################################
 
 $(DELALLCLUSTERS): $(DELALL)
 	$(SRCDIR)/do_correlation $(DELALL) deletion.all.correlation.txt --filter --pearson --columns
 	$(SRCDIR)/get_hclusters deletion.all.correlation.txt deletion.all.linkage.txt deletion.all.dendrogram.txt --iterations 100 --score 0.2 --distance > $(DELALLCLUSTERS)
+
+$(CURDIR)/merging.done: $(DELALLCLUSTERS) $(SHARED) $(MERGEDDIR) $(MERGED)
+	$(SRCDIR)/combine_conditions $(DELALLCLUSTERS) $(SHARED) $(MERGED) $(MERGEDDIR) > $@
 
 ########################
 ## Reports generation ##
@@ -189,7 +198,7 @@ collect: $(NAMECONVERSION)
 pre-process: $(FIXEDS)
 post-process: $(RESCALED) $(FDR)
 deletion: $(DEL) $(DELFDR) $(DELGENES) $(DELALL) $(DELALLFDR) $(DELALLGENES)
-clusters: $(DELALLCLUSTERS)
+clusters: $(DELALLCLUSTERS) $(CURDIR)/merging.done
 reports: $(RPHENOTYPES) $(RGENOTYPES)
 
 .PHONY: select collect pre-process post-process deletion clusters reports

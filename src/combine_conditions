@@ -1,0 +1,144 @@
+#!/usr/bin/env python
+
+# Copyright (C) <2016> EMBL-European Bioinformatics Institute
+
+# This program is free software: you can redistribute it and/or
+# modify it under the terms of the GNU General Public License as
+# published by the Free Software Foundation, either version 3 of
+# the License, or (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+
+# Neither the institution name nor the name screenings can
+# be used to endorse or promote products derived from this
+# software without prior written permission. For written
+# permission, please contact <marco@ebi.ac.uk>.
+
+# Products derived from this software may not be called
+# screenings nor may screenings appear in their names
+# without prior written permission of the developers.
+# You should have received a copy of the GNU General Public
+# License along with this program. If not, see
+# <http://www.gnu.org/licenses/>.
+
+__author__ = "Marco Galardini"
+__version__ = "0.0.1"
+
+def get_options():
+    import argparse
+
+    # create the top-level parser
+    description = "Combine correlated conditions"
+    parser = argparse.ArgumentParser(description = description,
+                                     prog = 'combine conditions')
+    parser.add_argument('clusters', action='store',
+                        help='Conditions clusters')
+    parser.add_argument('shared', action='store',
+                        help='Shared conditions')
+    parser.add_argument('inmatrix', action='store',
+                        help='Input matrix file')
+    parser.add_argument('outdir', action='store',
+                        help='Output directory (must be present)')
+
+    parser.add_argument('--average', action='store_true',
+                        default=False,
+                        help='Use average [Default: pasted together]')
+    parser.add_argument('--minimum', action='store_true',
+                        default=False,
+                        help='Use minimum [Default: pasted together]')
+    
+    parser.add_argument('--version', action='version',
+                         version='%(prog)s '+__version__)
+
+    return parser.parse_args()
+
+def mad(data, c=0.6745):
+    '''
+    Compute the MAD
+    
+    Equivalent to R's mad function
+    '''
+    import numpy as np
+    
+    data = np.ma.masked_array(data.as_matrix(),
+               np.isnan(data.as_matrix()))
+
+    return np.ma.median(np.ma.fabs(data - np.ma.median(data))) / c
+
+
+def median(data):
+    import numpy as np
+
+    data = np.ma.masked_array(data.as_matrix(),
+                   np.isnan(data.as_matrix()))
+    
+    return np.ma.median(data)
+
+def get_Zscore(values):
+    return (values.as_matrix()-median(values))/mad(values)
+
+def get_sf(values):
+    return stats.norm.sf(abs(values))*2
+
+def correct_pvals(values):
+    return fdrcorrection0(values,
+                        alpha=0.05,
+                        )[1]
+
+if __name__ == "__main__":
+    import os
+    import sys
+    import pandas as pd
+    import numpy as np
+    from scipy import stats
+    from statsmodels.sandbox.stats.multicomp import fdrcorrection0
+    options = get_options()
+
+    if options.average and options.minimum:
+        print('Either one of average or minimum are needed')
+        sys.exit(1)
+    
+    # Read the input matrix
+    m = pd.read_table(options.inmatrix)
+    m.set_index(m.columns[0], inplace=True)
+    
+    cond = {}
+    for l in open(options.clusters):
+        if l.startswith('#'):
+            continue
+        c, cl = l.rstrip().split()
+        cond[cl] = cond.get(cl, set())
+        cond[cl].add(c)
+   
+    d = {x.split()[1]:x.rstrip().split()[0]
+         for x in open(options.shared)}
+
+    d1 = {}
+    res = []
+    for cl, cs in cond.items():
+        r = []
+        for c in cs:
+            try:
+                r.append(m[d[c]])
+            except KeyError:
+                continue
+        if len(r) > 1:
+            print(cl)
+            if options.average:
+                d1[cl] = pd.concat(r, axis=1).dropna().T.mean()
+            elif options.minimum:
+                d1[cl] = pd.concat(r, axis=1).dropna().T.min()
+            else:
+                d1[cl] = pd.concat(r).dropna()
+
+    for cl, r1 in d1.items():
+        r1.to_csv(os.path.join(options.outdir, '%s.vector.txt'%cl), sep='\t')
+        mz = get_Zscore(r1)
+        mp = get_sf(mz)
+        mf = correct_pvals(mp)
+        mf = pd.Series(mf)
+        mf.index = r1.index
+        mf.to_csv(os.path.join(options.outdir, '%s.fdr.txt'%cl), sep='\t')
