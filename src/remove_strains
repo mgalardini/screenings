@@ -68,5 +68,37 @@ if __name__ == "__main__":
               if list(np.isnan(m.ix[i])).count(True) == len(m.columns)}
     m = m.drop(remove)
 
+    # Remove duplicate strains
+    # and dummy entries
+    remove = {x for x in m.index
+              if '_1' in x
+              or '_2' in x
+              or '_3' in x
+              or '_4' in x
+              or 'dummy' in x.lower()}
+    m = m.drop(remove)
+
+    # Keep duplicated strains from plate 8
+    un = set([x.split()[0] for x in m.index])
+    keep = []
+    for s in sorted(un):
+        pos = [(x,i) for x,i in zip(m.index, range(m.shape[0]))
+               if x.startswith(s)]
+        if len(pos) > 1:
+            k = [x[1] for x in pos if x[0].endswith('-P8')]
+            if len(k) > 0:
+                keep.append(k[0])
+            else:
+                keep.append(pos[0][1])
+        else:
+            keep.append(pos[0][1])
+
+    m = pd.DataFrame(m.as_matrix()[keep, :],
+                     index=m.index[keep],
+                     columns=m.columns)
+    
+    # Rewrite the strains name to remove the plate information
+    m.index = [x.split()[0] for x in m.index]
+
     # Rewrite the matrix
     m.to_csv(options.outmatrix, sep='\t')
