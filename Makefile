@@ -159,8 +159,8 @@ $(DEL): $(DELIN) $(DELOUT)
 $(DELFDR): $(DEL)
 	$(SRCDIR)/fdr_matrix $(DEL) $(DELFDR)
 
-$(DELGENES): $(DEL) $(DELFDR)
-	$(SRCDIR)/important_genes $(DEL) $(DELFDR) --filter Deletion > $(DELGENES)
+$(DELGENES): $(DEL) $(DELFDR) $(SHARED)
+	$(SRCDIR)/important_genes $(DEL) $(DELFDR) $(SHARED) --filter Deletion > $(DELGENES)
 
 $(DELALL): $(DELALLIN) $(DELOUT)
 	$(SRCDIR)/remove_duplicates $< $@
@@ -169,16 +169,16 @@ $(DELALLFDR): $(DELALL)
 	$(SRCDIR)/fdr_matrix $(DELALL) $(DELALLFDR)
 
 $(DELALLGENES): $(DELALL) $(DELALLFDR)
-	$(SRCDIR)/important_genes $(DELALL) $(DELALLFDR) --no-filter > $(DELALLGENES)
+	$(SRCDIR)/important_genes $(DELALL) $(DELALLFDR) $(SHARED) --no-filter > $(DELALLGENES)
 
 $(DELALLGENES5): $(DELALL) $(DELALLFDR)
-	$(SRCDIR)/important_genes $(DELALL) $(DELALLFDR) --no-filter --threshold 5E-5 > $(DELALLGENES5)
+	$(SRCDIR)/important_genes $(DELALL) $(DELALLFDR) $(SHARED) --no-filter --threshold 5E-5 > $(DELALLGENES5)
 
 $(DELALLGENES10): $(DELALL) $(DELALLFDR)
-	$(SRCDIR)/important_genes $(DELALL) $(DELALLFDR) --no-filter --threshold 5E-10 > $(DELALLGENES10)
+	$(SRCDIR)/important_genes $(DELALL) $(DELALLFDR) $(SHARED) --no-filter --threshold 5E-10 > $(DELALLGENES10)
 
 $(DELALLGENES50): $(DELALL) $(DELALLFDR)
-	$(SRCDIR)/important_genes $(DELALL) $(DELALLFDR) --no-filter --threshold 5E-50 > $(DELALLGENES50)
+	$(SRCDIR)/important_genes $(DELALL) $(DELALLFDR) $(SHARED) --no-filter --threshold 5E-50 > $(DELALLGENES50)
 
 ##############################################
 ## Merge conditions using chemical genomics ##
@@ -192,28 +192,28 @@ $(CURDIR)/merging.done: $(DELALLCLUSTERS) $(SHARED) $(MERGEDDIR) $(MERGED)
 	$(SRCDIR)/combine_conditions $(DELALLCLUSTERS) $(SHARED) $(MERGED) $(MERGEDDIR) > $@
 
 $(MERGEDGENES): $(DELALLCLUSTERS) $(DELALLGENES)
-	$(SRCDIR)/important_genes_combined $(DELALLCLUSTERS) $(DELALLGENES) > $@
+	$(SRCDIR)/important_genes_combined $(DELALLCLUSTERS) $(DELALLGENES) $(SHARED) > $@
 
 $(MERGEDGENES5): $(DELALLCLUSTERS) $(DELALLGENES5)
-	$(SRCDIR)/important_genes_combined $(DELALLCLUSTERS) $(DELALLGENES5) > $@
+	$(SRCDIR)/important_genes_combined $(DELALLCLUSTERS) $(DELALLGENES5) $(SHARED) > $@
 
 $(MERGEDGENES10): $(DELALLCLUSTERS) $(DELALLGENES10)
-	$(SRCDIR)/important_genes_combined $(DELALLCLUSTERS) $(DELALLGENES10) > $@
+	$(SRCDIR)/important_genes_combined $(DELALLCLUSTERS) $(DELALLGENES10) $(SHARED) > $@
 
 $(MERGEDGENES50): $(DELALLCLUSTERS) $(DELALLGENES50)
-	$(SRCDIR)/important_genes_combined $(DELALLCLUSTERS) $(DELALLGENES50) > $@
+	$(SRCDIR)/important_genes_combined $(DELALLCLUSTERS) $(DELALLGENES50) $(SHARED) > $@
 
 $(MERGEDGENESUNION): $(DELALLCLUSTERS) $(DELALLGENES)
-	$(SRCDIR)/important_genes_combined $(DELALLCLUSTERS) $(DELALLGENES) --merge union > $@
+	$(SRCDIR)/important_genes_combined $(DELALLCLUSTERS) $(DELALLGENES) $(SHARED) --merge union > $@
 
 $(MERGEDGENESUNION5): $(DELALLCLUSTERS) $(DELALLGENES5)
-	$(SRCDIR)/important_genes_combined $(DELALLCLUSTERS) $(DELALLGENES5) --merge union > $@
+	$(SRCDIR)/important_genes_combined $(DELALLCLUSTERS) $(DELALLGENES5) $(SHARED) --merge union > $@
 
 $(MERGEDGENESUNION10): $(DELALLCLUSTERS) $(DELALLGENES10)
-	$(SRCDIR)/important_genes_combined $(DELALLCLUSTERS) $(DELALLGENES10) --merge union > $@
+	$(SRCDIR)/important_genes_combined $(DELALLCLUSTERS) $(DELALLGENES10) $(SHARED) --merge union > $@
 
 $(MERGEDGENESUNION50): $(DELALLCLUSTERS) $(DELALLGENES50)
-	$(SRCDIR)/important_genes_combined $(DELALLCLUSTERS) $(DELALLGENES50) --merge union > $@
+	$(SRCDIR)/important_genes_combined $(DELALLCLUSTERS) $(DELALLGENES50) $(SHARED) --merge union > $@
 
 select: $(TIMEPOINTS)
 collect: $(NAMECONVERSION)

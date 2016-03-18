@@ -38,6 +38,8 @@ def get_options():
                         help='Conditions clusters')
     parser.add_argument('genes', action='store',
                         help='Important genes')
+    parser.add_argument('shared', action='store',
+                        help='Shared conditions')
 
     parser.add_argument('--merge',
                         default='atleast2',
@@ -72,6 +74,9 @@ if __name__ == "__main__":
         except ValueError:
             continue
 
+    d = {x.rstrip().split('\t')[1]:x.split('\t')[0]
+         for x in open(options.shared)}
+
     for cl, cs in clusters.items():
         freq = {}
         for c in cs:
@@ -81,6 +86,6 @@ if __name__ == "__main__":
                 freq[gene] = freq.get(gene, 0)
                 freq[gene] += 1
         if options.merge == 'union':
-            print('\t'.join( (cl, ' '.join(freq.keys())) ))
+            print('\t'.join( (d.get(cl, cl), ' '.join(freq.keys())) ))
         else:
-            print('\t'.join( (cl, ' '.join([x for x,v in freq.items() if v > 1])) ))
+            print('\t'.join( (d.get(cl, cl), ' '.join([x for x,v in freq.items() if v > 1])) ))
