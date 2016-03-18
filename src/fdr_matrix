@@ -39,10 +39,6 @@ def get_options():
     parser.add_argument('outmatrix', action='store',
                         help='Output matrix file')
 
-    parser.add_argument('--index', action='store',
-                        default='Gene',
-                        help='Index column [Default: "Gene"]')
-    
     parser.add_argument('--version', action='version',
                          version='%(prog)s '+__version__)
 

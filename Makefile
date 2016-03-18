@@ -52,21 +52,35 @@ SNPSFUNCTIONAL = $(CURDIR)/SNPs_functional_matrix.tsv
 
 # External data: deletion screen
 DELDIR = $(CURDIR)/deletion_screen
+DELOUT = $(CURDIR)/deletion_screen_out
+$(DELOUT):
+	mkdir -p $(DELOUT)
 DELIN = $(DELDIR)/Cleaner_NormScores_joinedConds.txt
-DEL = $(CURDIR)/deletion.matrix.txt
-DELFDR = $(CURDIR)/deletion.fdr.txt
-DELGENES = $(CURDIR)/deletion.genes.txt
+DEL = $(DELOUT)/deletion.matrix.txt
+DELFDR = $(DELOUT)/deletion.fdr.txt
+DELGENES = $(DELOUT)/deletion.genes.2.txt
 DELALLIN = $(DELDIR)/NTB456.txt
-DELALL = $(CURDIR)/deletion.all.matrix.txt
-DELALLFDR = $(CURDIR)/deletion.all.fdr.txt
-DELALLGENES = $(CURDIR)/deletion.all.genes.txt
-DELALLCLUSTERS = $(CURDIR)/deletion.all.clusters.txt
+DELALL = $(DELOUT)/deletion.all.matrix.txt
+DELALLFDR = $(DELOUT)/deletion.all.fdr.txt
+DELALLGENES = $(DELOUT)/deletion.all.genes.2.txt
+DELALLGENES50 = $(DELOUT)/deletion.all.genes.50.txt
+DELALLGENES10 = $(DELOUT)/deletion.all.genes.10.txt
+DELALLGENES5 = $(DELOUT)/deletion.all.genes.5.txt
+DELALLCLUSTERS = $(DELOUT)/deletion.all.clusters.txt
 
 # Merging conditions
 SHARED = $(DELDIR)/shared_conditions.txt
 MERGEDDIR = $(CURDIR)/merged
 $(MERGEDDIR):
 	mkdir -p $(MERGEDDIR)
+MERGEDGENES = $(DELOUT)/merged.genes.freq.2.txt
+MERGEDGENES5 = $(DELOUT)/merged.genes.freq.5.txt
+MERGEDGENES10 = $(DELOUT)/merged.genes.freq.10.txt
+MERGEDGENES50 = $(DELOUT)/merged.genes.freq.50.txt
+MERGEDGENESUNION = $(DELOUT)/merged.genes.union.2.txt
+MERGEDGENESUNION5 = $(DELOUT)/merged.genes.union.5.txt
+MERGEDGENESUNION10 = $(DELOUT)/merged.genes.union.10.txt
+MERGEDGENESUNION50 = $(DELOUT)/merged.genes.union.50.txt
 
 ########################
 ## Select time points ##
@@ -139,26 +153,32 @@ $(FDR): $(MERGED)
 ## Deletion screen post-processing  ##
 ######################################
 
-# DELOPTIONS = --threshold -12 --absolute
-DELOPTIONS =
-
-$(DEL): $(DELIN)
+$(DEL): $(DELIN) $(DELOUT)
 	$(SRCDIR)/remove_duplicates $< $@
 
 $(DELFDR): $(DEL)
-	$(SRCDIR)/fdr_matrix $(DEL) $(DELFDR) --index genes
+	$(SRCDIR)/fdr_matrix $(DEL) $(DELFDR)
 
 $(DELGENES): $(DEL) $(DELFDR)
-	$(SRCDIR)/important_genes $(DEL) $(DELFDR) --index1 genes --index2 genes --filter Deletion $(DELOPTIONS) > $(DELGENES)
+	$(SRCDIR)/important_genes $(DEL) $(DELFDR) --filter Deletion > $(DELGENES)
 
-$(DELALL): $(DELALLIN)
+$(DELALL): $(DELALLIN) $(DELOUT)
 	$(SRCDIR)/remove_duplicates $< $@
 
 $(DELALLFDR): $(DELALL)
-	$(SRCDIR)/fdr_matrix $(DELALL) $(DELALLFDR) --index genes
+	$(SRCDIR)/fdr_matrix $(DELALL) $(DELALLFDR)
 
 $(DELALLGENES): $(DELALL) $(DELALLFDR)
-	$(SRCDIR)/important_genes $(DELALL) $(DELALLFDR) --index1 genes --index2 genes --no-filter $(DELOPTIONS) > $(DELALLGENES)
+	$(SRCDIR)/important_genes $(DELALL) $(DELALLFDR) --no-filter > $(DELALLGENES)
+
+$(DELALLGENES5): $(DELALL) $(DELALLFDR)
+	$(SRCDIR)/important_genes $(DELALL) $(DELALLFDR) --no-filter --threshold 5E-5 > $(DELALLGENES5)
+
+$(DELALLGENES10): $(DELALL) $(DELALLFDR)
+	$(SRCDIR)/important_genes $(DELALL) $(DELALLFDR) --no-filter --threshold 5E-10 > $(DELALLGENES10)
+
+$(DELALLGENES50): $(DELALL) $(DELALLFDR)
+	$(SRCDIR)/important_genes $(DELALL) $(DELALLFDR) --no-filter --threshold 5E-50 > $(DELALLGENES50)
 
 ##############################################
 ## Merge conditions using chemical genomics ##
@@ -171,34 +191,35 @@ $(DELALLCLUSTERS): $(DELALL)
 $(CURDIR)/merging.done: $(DELALLCLUSTERS) $(SHARED) $(MERGEDDIR) $(MERGED)
 	$(SRCDIR)/combine_conditions $(DELALLCLUSTERS) $(SHARED) $(MERGED) $(MERGEDDIR) > $@
 
-########################
-## Reports generation ##
-########################
+$(MERGEDGENES): $(DELALLCLUSTERS) $(DELALLGENES)
+	$(SRCDIR)/important_genes_combined $(DELALLCLUSTERS) $(DELALLGENES) > $@
 
-NPHENOTYPES = $(NOTEBOOKSDIR)/phenotypes.ipynb
-RPHENOTYPES = $(NOTEBOOKSDIR)/phenotypes.html
-$(RPHENOTYPES): $(NPHENOTYPES) $(RESCALED) $(FDR)
-	runipy -o $(NPHENOTYPES) && \
-	cd $(NOTEBOOKSDIR) && ipython nbconvert --to=html $(notdir $(NPHENOTYPES)) --template html.tpl && cd $(CURDIR) && \
-	git add $(NPHENOTYPES) && \
-	git commit -m "Updated phenotypes report" && \
-	git push
+$(MERGEDGENES5): $(DELALLCLUSTERS) $(DELALLGENES5)
+	$(SRCDIR)/important_genes_combined $(DELALLCLUSTERS) $(DELALLGENES5) > $@
 
-NGENOTYPES = $(NOTEBOOKSDIR)/phenotypes_genetics.ipynb
-RGENOTYPES = $(NOTEBOOKSDIR)/phenotypes_genetics.html
-$(RGENOTYPES): $(NGENOTYPES) $(RESCALED) $(FDR) $(ROARY) $(SNPS) $(SNPSDEL) $(SNPSFUNCTIONAL)
-	runipy -o $(NGENOTYPES) && \
-	cd $(NOTEBOOKSDIR) && ipython nbconvert --to=html $(notdir $(NGENOTYPES)) --template html.tpl && cd $(CURDIR) && \
-	git add $(NGENOTYPES) && \
-	git commit -m "Updated phenotypes/genotypes report" && \
-	git push
+$(MERGEDGENES10): $(DELALLCLUSTERS) $(DELALLGENES10)
+	$(SRCDIR)/important_genes_combined $(DELALLCLUSTERS) $(DELALLGENES10) > $@
+
+$(MERGEDGENES50): $(DELALLCLUSTERS) $(DELALLGENES50)
+	$(SRCDIR)/important_genes_combined $(DELALLCLUSTERS) $(DELALLGENES50) > $@
+
+$(MERGEDGENESUNION): $(DELALLCLUSTERS) $(DELALLGENES)
+	$(SRCDIR)/important_genes_combined $(DELALLCLUSTERS) $(DELALLGENES) --merge union > $@
+
+$(MERGEDGENESUNION5): $(DELALLCLUSTERS) $(DELALLGENES5)
+	$(SRCDIR)/important_genes_combined $(DELALLCLUSTERS) $(DELALLGENES5) --merge union > $@
+
+$(MERGEDGENESUNION10): $(DELALLCLUSTERS) $(DELALLGENES10)
+	$(SRCDIR)/important_genes_combined $(DELALLCLUSTERS) $(DELALLGENES10) --merge union > $@
+
+$(MERGEDGENESUNION50): $(DELALLCLUSTERS) $(DELALLGENES50)
+	$(SRCDIR)/important_genes_combined $(DELALLCLUSTERS) $(DELALLGENES50) --merge union > $@
 
 select: $(TIMEPOINTS)
 collect: $(NAMECONVERSION)
 pre-process: $(FIXEDS)
 post-process: $(RESCALED) $(FDR)
-deletion: $(DEL) $(DELFDR) $(DELGENES) $(DELALL) $(DELALLFDR) $(DELALLGENES)
-clusters: $(DELALLCLUSTERS) $(CURDIR)/merging.done
-reports: $(RPHENOTYPES) $(RGENOTYPES)
+deletion: $(DEL) $(DELFDR) $(DELGENES) $(DELALL) $(DELALLFDR) $(DELALLGENES) $(DELALLGENES5) $(DELALLGENES10) $(DELALLGENES50)
+clusters: $(DELALLCLUSTERS) $(CURDIR)/merging.done $(MERGEDGENES) $(MERGEDGENES5) $(MERGEDGENES10) $(MERGEDGENES50) $(MERGEDGENESUNION) $(MERGEDGENESUNION5) $(MERGEDGENESUNION10) $(MERGEDGENESUNION50)
 
-.PHONY: select collect pre-process post-process deletion clusters reports
+.PHONY: select collect pre-process post-process deletion clusters

@@ -33,24 +33,16 @@ def get_options():
     # create the top-level parser
     description = "Output the significant genes for each condition"
     parser = argparse.ArgumentParser(description = description,
-                                     prog = 'important_genes')
-    parser.add_argument('inmatrix', action='store',
-                        help='Input matrix file')
-    parser.add_argument('fdrmatrix', action='store',
-                        help='FDR matrix file')
+                                     prog = 'important_genes_combined')
+    parser.add_argument('clusters', action='store',
+                        help='Conditions clusters')
+    parser.add_argument('genes', action='store',
+                        help='Important genes')
 
-    parser.add_argument('--filter', action='store',
-                        nargs='+',
-                        default=['Deletion'],
-                        help='Genes to consider [Default: Deletion]')
-    parser.add_argument('--no-filter', action='store_true',
-                        default=False,
-                        help='Don\'t consider filters')
-    
-    parser.add_argument('--threshold', action='store',
-                        type=float,
-                        default=0.05,
-                        help='FDR threshold [Default: 0.05]')
+    parser.add_argument('--merge',
+                        default='atleast2',
+                        choices=('union',
+                                 'atleast2'))
     
     parser.add_argument('--version', action='version',
                          version='%(prog)s '+__version__)
@@ -58,27 +50,37 @@ def get_options():
     return parser.parse_args()
 
 if __name__ == "__main__":
+    import os
     import pandas as pd
     options = get_options()
 
-    # Read the input matrix
-    m = pd.read_table(options.inmatrix)
-    m.set_index(m.columns[0], inplace=True)
-    
-    # Read the FDR
-    f = pd.read_table(options.fdrmatrix)
-    f.set_index(f.columns[0], inplace=True)
+    clusters = {}
+    for l in open(options.clusters):
+        if l.startswith('#'):
+            continue
+        c, cl = l.rstrip().split('\t')
+        clusters[cl] = clusters.get(cl, set())
+        clusters[cl].add( c )
+        
+    genes = {}
+    for l in open(options.genes):
+        if l.startswith('#'):
+            continue
+        try:
+            cl, c = l.rstrip().split('\t')
+            genes[cl] = set(c.split())
+        except ValueError:
+            continue
 
-    # Apply the FDR filter
-    v = m[f < options.threshold]
-
-    # Output the relevant genes for each condition
-    for c in v.columns:
-        genes = list(v[c].dropna().index)
-        if not options.no_filter:
-            print('\t'.join( (c, ' '.join([x.split()[0]
-                  for x in genes
-                  if x.split(' - ')[1].split('-')[0] in options.filter])) ))
+    for cl, cs in clusters.items():
+        freq = {}
+        for c in cs:
+            if c not in genes:
+                continue
+            for gene in genes[c]:
+                freq[gene] = freq.get(gene, 0)
+                freq[gene] += 1
+        if options.merge == 'union':
+            print('\t'.join( (cl, ' '.join(freq.keys())) ))
         else:
-            print('\t'.join( (c, ' '.join([x.split()[0]
-                  for x in genes])) ))
+            print('\t'.join( (cl, ' '.join([x for x,v in freq.items() if v > 1])) ))
