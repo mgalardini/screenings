@@ -49,6 +49,10 @@ def get_options():
                         default=False,
                         help='Don\'t consider filters')
     
+    parser.add_argument('--negative', action='store_true',
+                        default=False,
+                        help='Only consider negative S-scores')
+    
     parser.add_argument('--threshold', action='store',
                         type=float,
                         default=0.05,
@@ -73,6 +77,8 @@ if __name__ == "__main__":
 
     # Apply the FDR filter
     v = m[f < options.threshold]
+    if options.negative:
+        v = v[v < 0]
 
     # Shared conditions
     d = {x.rstrip().split('\t')[1]:x.split('\t')[0]
