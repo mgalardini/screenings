@@ -177,16 +177,16 @@ $(DELALLFDR): $(DELALL)
 	$(SRCDIR)/fdr_matrix $(DELALL) $(DELALLFDR)
 
 $(DELALLGENES): $(DELALL) $(DELALLFDR)
-	$(SRCDIR)/important_genes $(DELALL) $(DELALLFDR) $(SHARED) --no-filter > $(DELALLGENES)
+	$(SRCDIR)/important_genes $(DELALL) $(DELALLFDR) $(SHARED) --negative --no-filter > $(DELALLGENES)
 
 $(DELALLGENES5): $(DELALL) $(DELALLFDR)
-	$(SRCDIR)/important_genes $(DELALL) $(DELALLFDR) $(SHARED) --no-filter --threshold 5E-5 > $(DELALLGENES5)
+	$(SRCDIR)/important_genes $(DELALL) $(DELALLFDR) $(SHARED) --negative --no-filter --threshold 5E-5 > $(DELALLGENES5)
 
 $(DELALLGENES10): $(DELALL) $(DELALLFDR)
-	$(SRCDIR)/important_genes $(DELALL) $(DELALLFDR) $(SHARED) --no-filter --threshold 5E-10 > $(DELALLGENES10)
+	$(SRCDIR)/important_genes $(DELALL) $(DELALLFDR) $(SHARED) --negative --no-filter --threshold 5E-10 > $(DELALLGENES10)
 
 $(DELALLGENES50): $(DELALL) $(DELALLFDR)
-	$(SRCDIR)/important_genes $(DELALL) $(DELALLFDR) $(SHARED) --no-filter --threshold 5E-50 > $(DELALLGENES50)
+	$(SRCDIR)/important_genes $(DELALL) $(DELALLFDR) $(SHARED) --negative --no-filter --threshold 5E-50 > $(DELALLGENES50)
 
 ##############################################
 ## Merge conditions using chemical genomics ##
