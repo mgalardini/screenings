@@ -40,6 +40,12 @@ RESTRICTED = $(CURDIR)/fileForCluster3.restricted.txt
 RESCALED = $(CURDIR)/fileForCluster3.rescaled.txt
 MERGED = $(CURDIR)/emap.matrix.txt
 FDR = $(CURDIR)/emap.fdr.txt
+PHENODIR = $(CURDIR)/phenotypes
+$(PHENODIR):
+	mkdir -p $(PHENODIR)
+BPHENODIR = $(CURDIR)/binary_phenotypes
+$(BPHENODIR):
+	mkdir -p $(BPHENODIR)
 
 # Name conversion
 CONVERSION = $(CURDIR)/conditions.csv
@@ -146,8 +152,10 @@ $(RESCALED): $(RESTRICTED)
 $(MERGED): $(RESCALED)
 	$(SRCDIR)/merge_columns $(RESCALED) > $(MERGED)
 
-$(FDR): $(MERGED)
-	$(SRCDIR)/fdr_matrix $(MERGED) $(FDR)
+$(FDR): $(MERGED) $(PHENODIR) $(BPHENODIR)
+	$(SRCDIR)/fdr_matrix $(MERGED) $(FDR) && \
+	$(SRCDIR)/get_phenotypes $(MERGED) $(FDR) $(PHENODIR) --threshold 0.05 && \
+	$(SRCDIR)/get_phenotypes $(MERGED) $(FDR) $(BPHENODIR) --binary --threshold 0.05
 
 ######################################
 ## Deletion screen post-processing  ##
