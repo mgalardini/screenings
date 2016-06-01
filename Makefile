@@ -40,6 +40,7 @@ RESTRICTED = $(CURDIR)/fileForCluster3.restricted.txt
 RESCALED = $(CURDIR)/fileForCluster3.rescaled.txt
 MERGED = $(CURDIR)/emap.matrix.txt
 FDR = $(CURDIR)/emap.fdr.txt
+FDRBINARY = $(CURDIR)/emap.binary.txt
 PHENODIR = $(CURDIR)/phenotypes
 $(PHENODIR):
 	mkdir -p $(PHENODIR)
@@ -157,6 +158,9 @@ $(FDR): $(MERGED) $(PHENODIR) $(BPHENODIR)
 	$(SRCDIR)/get_phenotypes $(MERGED) $(FDR) $(PHENODIR) --threshold 0.05 && \
 	$(SRCDIR)/get_phenotypes $(MERGED) $(FDR) $(BPHENODIR) --binary --threshold 0.05
 
+$(FDRBINARY): $(FDR)
+	$(SRCDIR)/get_binary_matrix $(FDR) --separator ',' > $(FDRBINARY)
+
 ######################################
 ## Deletion screen post-processing  ##
 ######################################
@@ -226,7 +230,7 @@ $(MERGEDGENESUNION50): $(DELALLCLUSTERS) $(DELALLGENES50)
 select: $(TIMEPOINTS)
 collect: $(NAMECONVERSION)
 pre-process: $(FIXEDS)
-post-process: $(RESCALED) $(FDR)
+post-process: $(RESCALED) $(FDR) $(FDRBINARY)
 deletion: $(DEL) $(DELFDR) $(DELGENES) $(DELALL) $(DELALLFDR) $(DELALLGENES) $(DELALLGENES5) $(DELALLGENES10) $(DELALLGENES50)
 clusters: $(DELALLCLUSTERS) $(CURDIR)/merging.done $(MERGEDGENES) $(MERGEDGENES5) $(MERGEDGENES10) $(MERGEDGENES50) $(MERGEDGENESUNION) $(MERGEDGENESUNION5) $(MERGEDGENESUNION10) $(MERGEDGENESUNION50)
 
