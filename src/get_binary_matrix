@@ -62,4 +62,4 @@ if __name__ == "__main__":
     
     # Rewrite the matrix
     m.index.name = ''
-    m.to_csv(sys.stdout, sep=options.separator)
+    m.astype(int).to_csv(sys.stdout, sep=options.separator)
