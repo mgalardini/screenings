@@ -48,6 +48,15 @@ def get_options():
     parser.add_argument('--binary', action='store_true',
                         default=False,
                         help='Get phenotypes in binary format [Default: S-scores]')
+    parser.add_argument('--allowed', action='store',
+                        default=None,
+                        help='Allowed samples [Default: all]')
+    parser.add_argument('--separator', action='store',
+                        default='\t',
+                        help='Field separator [Default: tab]')
+    parser.add_argument('--table', action='store_true',
+                        default=False,
+                        help='Table format [Default: plink format]')
     
     parser.add_argument('--version', action='version',
                          version='%(prog)s '+__version__)
@@ -59,7 +68,7 @@ if __name__ == "__main__":
     import numpy as np
     import pandas as pd
     options = get_options()
-
+    
     # Read the input matrix
     m = pd.read_table(options.inmatrix)
     m.set_index(m.columns[0], inplace=True)
@@ -73,20 +82,34 @@ if __name__ == "__main__":
     v[np.invert(np.isnan(v))] = 1
     v[np.isnan(v)] = 0
 
+    if options.allowed is not None:
+        allowed = {x.rstrip()
+                   for x in open(options.allowed)}
+    else:
+        allowed = set(m.index)
+
     for c in m.columns:
         if not options.binary:
-            matrix = m.loc[sorted(m.index),
+            matrix = m.loc[sorted(allowed),
                            c].dropna()
         else:
-            matrix = v.loc[sorted(m.index),
+            matrix = v.loc[sorted(allowed.intersection(m[c].dropna().index)),
                            c].dropna()
         outfile = open(os.path.join(options.outdir,
                                     '%s'%c),
                        'w')
+        if options.table:
+            outfile.write(options.separator.join( ('', c) ) + '\n' )
         for sample, score in zip(matrix.index,
                                  matrix.as_matrix()):
             if not options.binary:
-                outfile.write( '\t'.join( (sample, sample, str(score)) ) + '\n' )
+                if options.table:
+                    outfile.write( options.separator.join( (sample, str(score)) ) + '\n' )
+                else:
+                    outfile.write( options.separator.join( (sample, sample, str(score)) ) + '\n' )
             else:
-                outfile.write( '\t'.join( (sample, sample, str(int(score))) ) + '\n' )
+                if options.table:
+                    outfile.write( options.separator.join( (sample, str(int(score))) ) + '\n' )
+                else:
+                    outfile.write( options.separator.join( (sample, sample, str(int(score))) ) + '\n' )
         outfile.close()
