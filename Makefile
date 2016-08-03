@@ -48,6 +48,11 @@ BPHENODIR = $(CURDIR)/binary_phenotypes
 $(BPHENODIR):
 	mkdir -p $(BPHENODIR)
 
+# Phenotypes still separated by plate
+ARESCALED = $(CURDIR)/fileForCluster3.all.rescaled.txt
+AMERGED = $(CURDIR)/emap.matrix.all.txt
+AFDR = $(CURDIR)/emap.fdr.all.txt
+
 # Name conversion
 CONVERSION = $(CURDIR)/conditions.csv
 
@@ -66,6 +71,7 @@ DELIN = $(DELDIR)/Cleaner_NormScores_joinedConds.txt
 DEL = $(DELOUT)/deletion.matrix.txt
 DELFDR = $(DELOUT)/deletion.fdr.txt
 DELGENES = $(DELOUT)/deletion.genes.2.txt
+DELREMOVE = $(DELOUT)/ignored_genes.txt
 DELALLIN = $(DELDIR)/NTB456.txt
 DELALL = $(DELOUT)/deletion.all.matrix.txt
 DELALLFDR = $(DELOUT)/deletion.all.fdr.txt
@@ -161,6 +167,15 @@ $(FDR): $(MERGED) $(PHENODIR) $(BPHENODIR)
 $(FDRBINARY): $(FDR)
 	$(SRCDIR)/get_binary_matrix $(FDR) --separator ',' > $(FDRBINARY)
 
+$(ARESCALED): $(RENAMED)
+	$(SRCDIR)/rescale_sscores $< > $@
+
+$(AMERGED): $(ARESCALED)
+	$(SRCDIR)/merge_columns $< > $@
+
+$(AFDR): $(AMERGED)
+	$(SRCDIR)/fdr_matrix $(AMERGED) $(AFDR)
+
 ######################################
 ## Deletion screen post-processing  ##
 ######################################
@@ -174,23 +189,26 @@ $(DELFDR): $(DEL)
 $(DELGENES): $(DEL) $(DELFDR) $(SHARED)
 	$(SRCDIR)/important_genes $(DEL) $(DELFDR) $(SHARED) --filter Deletion > $(DELGENES)
 
+$(DELREMOVE): $(DELIN)
+	$(SRCDIR)/discard_genes $< | awk '{print $$1}' | sort | uniq > $@
+
 $(DELALL): $(DELALLIN) $(DELOUT)
 	$(SRCDIR)/remove_duplicates $< $@
 
 $(DELALLFDR): $(DELALL)
 	$(SRCDIR)/fdr_matrix $(DELALL) $(DELALLFDR)
 
-$(DELALLGENES): $(DELALL) $(DELALLFDR)
-	$(SRCDIR)/important_genes $(DELALL) $(DELALLFDR) $(SHARED) --negative --no-filter > $(DELALLGENES)
+$(DELALLGENES): $(DELALL) $(DELALLFDR) $(DELREMOVE)
+	$(SRCDIR)/important_genes $(DELALL) $(DELALLFDR) $(SHARED) --negative --no-filter --ignore $(DELREMOVE) > $(DELALLGENES)
 
-$(DELALLGENES5): $(DELALL) $(DELALLFDR)
-	$(SRCDIR)/important_genes $(DELALL) $(DELALLFDR) $(SHARED) --negative --no-filter --threshold 5E-5 > $(DELALLGENES5)
+$(DELALLGENES5): $(DELALL) $(DELALLFDR) $(DELREMOVE)
+	$(SRCDIR)/important_genes $(DELALL) $(DELALLFDR) $(SHARED) --negative --no-filter --threshold 5E-5 --ignore $(DELREMOVE) > $(DELALLGENES5)
 
-$(DELALLGENES10): $(DELALL) $(DELALLFDR)
-	$(SRCDIR)/important_genes $(DELALL) $(DELALLFDR) $(SHARED) --negative --no-filter --threshold 5E-10 > $(DELALLGENES10)
+$(DELALLGENES10): $(DELALL) $(DELALLFDR) $(DELREMOVE)
+	$(SRCDIR)/important_genes $(DELALL) $(DELALLFDR) $(SHARED) --negative --no-filter --threshold 5E-10 --ignore $(DELREMOVE) > $(DELALLGENES10)
 
-$(DELALLGENES50): $(DELALL) $(DELALLFDR)
-	$(SRCDIR)/important_genes $(DELALL) $(DELALLFDR) $(SHARED) --negative --no-filter --threshold 5E-50 > $(DELALLGENES50)
+$(DELALLGENES50): $(DELALL) $(DELALLFDR) $(DELREMOVE)
+	$(SRCDIR)/important_genes $(DELALL) $(DELALLFDR) $(SHARED) --negative --no-filter --threshold 5E-50 --ignore $(DELREMOVE) > $(DELALLGENES50)
 
 ##############################################
 ## Merge conditions using chemical genomics ##
@@ -230,7 +248,7 @@ $(MERGEDGENESUNION50): $(DELALLCLUSTERS) $(DELALLGENES50)
 select: $(TIMEPOINTS)
 collect: $(NAMECONVERSION)
 pre-process: $(FIXEDS)
-post-process: $(RESCALED) $(FDR) $(FDRBINARY)
+post-process: $(RESCALED) $(FDR) $(FDRBINARY) $(AFDR)
 deletion: $(DEL) $(DELFDR) $(DELGENES) $(DELALL) $(DELALLFDR) $(DELALLGENES) $(DELALLGENES5) $(DELALLGENES10) $(DELALLGENES50)
 clusters: $(DELALLCLUSTERS) $(CURDIR)/merging.done $(MERGEDGENES) $(MERGEDGENES5) $(MERGEDGENES10) $(MERGEDGENES50) $(MERGEDGENESUNION) $(MERGEDGENESUNION5) $(MERGEDGENESUNION10) $(MERGEDGENESUNION50)
 

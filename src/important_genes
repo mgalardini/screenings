@@ -41,6 +41,9 @@ def get_options():
     parser.add_argument('shared', action='store',
                         help='shared conditions file')
 
+    parser.add_argument('--ignore', action='store',
+                        default=None,
+                        help='Genes to ignore [Default: consider all]')
     parser.add_argument('--filter', action='store',
                         nargs='+',
                         default=['Deletion'],
@@ -64,6 +67,7 @@ def get_options():
     return parser.parse_args()
 
 if __name__ == "__main__":
+    import sys
     import pandas as pd
     options = get_options()
 
@@ -84,13 +88,21 @@ if __name__ == "__main__":
     d = {x.rstrip().split('\t')[1]:x.split('\t')[0]
          for x in open(options.shared)}
 
+    ignore = set()
+    if options.ignore is not None:
+        ignore = {x.rstrip()
+                  for x in open(options.ignore)}
+    
     # Output the relevant genes for each condition
     for c in v.columns:
         genes = list(v[c].dropna().index)
         if not options.no_filter:
             print('\t'.join( (d.get(c, c), ' '.join([x.split()[0]
                   for x in genes
-                  if x.split(' - ')[1].split('-')[0] in options.filter])) ))
+                  if len(x.split(' - ')) > 1
+                  and x.split(' - ')[0] not in ignore
+                  and x.split(' - ')[1].split('-')[0] in options.filter])) ))
         else:
             print('\t'.join( (d.get(c, c), ' '.join([x.split()[0]
-                  for x in genes])) ))
+                  for x in genes
+                  if x.split()[0] not in ignore])) ))
