@@ -24,7 +24,7 @@ chlorhexidine	Antimicrobial	Antiseptic
 ciprofloxacin	Antibiotic	Bactericidal	DNA dependent processes	DNA gyrase
 clindamycin	Antibiotic	Bacteriostatic	Protein synthesis	50S ribosomal subunit	Lincosamide
 colicinm	Antimicrobial	Antimicrobial enzyme
-curcumin	Antimicrobial	Envelope stress	Envelop integrity	Membrane
+curcumin	Antimicrobial	Envelope stress	Envelope integrity	Membrane
 cumene	Others
 cycloserine-d	Antibiotic	Bactericidal	Cell wall synthesis	Transpeptidation	D-alanine analogue
 diacerein	Human targeted drug
@@ -40,7 +40,7 @@ fosfomycin	Antibiotic	Bactericidal	Cell wall synthesis	Others	Phosphonic acid
 fusidicacid	Antibiotic	Bacteriostatic	Protein synthesis	EF-G turnover	Fusidane
 fumarate	Others
 agar was replaced with gellan	Others
-gramidicin	Antibiotic		Envelop integrity	Membrane	Antimicrobial peptide
+gramidicin	Antibiotic		Envelope integrity	Membrane	Antimicrobial peptide
 hexestrol	Others
 imipenem	Antibiotic	Bactericidal	Cell wall synthesis	Transpeptidation	Carbapenem
 indole	Stress

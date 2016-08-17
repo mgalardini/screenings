@@ -55,12 +55,14 @@ if __name__ == "__main__":
     m = pd.read_table(options.inmatrix)
     m.set_index(m.columns[0], inplace=True)
 
-    remove = {x.rstrip() for x in open(options.remove)}
+    remove = {x.rstrip() for x in open(options.remove)
+              if x.rstrip in m.columns}
 
-    # Drop the indexes not matching
-    m.drop(remove,
-           axis=1,
-           inplace=True)
+    if len(remove) > 0:
+        # Drop the indexes not matching
+        m.drop(remove,
+               axis=1,
+               inplace=True)
     # Also, drop the conditions that are always NaN
     # as it messes up the following analysis
     remove = {i for i in m.columns
