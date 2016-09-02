@@ -57,6 +57,9 @@ def get_options():
     parser.add_argument('--table', action='store_true',
                         default=False,
                         help='Table format [Default: plink format]')
+    parser.add_argument('--sick', action='store_true',
+                        default=False,
+                        help='Only sick phenotypes [Default: all phenotypes]')
     
     parser.add_argument('--version', action='version',
                          version='%(prog)s '+__version__)
@@ -79,6 +82,8 @@ if __name__ == "__main__":
 
     # Apply the FDR filter
     v = m[f < options.threshold]
+    if options.sick:
+        v = v[v < 0]
     v[np.invert(np.isnan(v))] = 1
     v[np.isnan(v)] = 0
 
