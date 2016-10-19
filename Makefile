@@ -168,8 +168,8 @@ $(FDR): $(MERGED) $(PHENODIR) $(BPHENODIR)
 	$(SRCDIR)/get_phenotypes $(MERGED) $(FDR) $(PHENODIR) --threshold 0.05 && \
 	$(SRCDIR)/get_phenotypes $(MERGED) $(FDR) $(BPHENODIR) --binary --threshold 0.05
 
-$(FDRBINARY): $(FDR)
-	$(SRCDIR)/get_binary_matrix $(FDR) --separator ',' > $(FDRBINARY)
+$(FDRBINARY): $(MERGED) $(FDR)
+	$(SRCDIR)/get_binary_matrix $(MERGED) $(FDR) --separator ',' > $(FDRBINARY)
 
 $(ARESCALED): $(RENAMED)
 	$(SRCDIR)/rescale_sscores $< > $@
