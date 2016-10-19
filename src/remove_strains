@@ -56,11 +56,11 @@ if __name__ == "__main__":
     m.set_index(m.columns[0], inplace=True)
 
     # Read the conversion table
-    keep = {x.rstrip() for x in open(options.keep)}
+    remove = {x.rstrip() for x in open(options.remove)}
 
-    # Drop the indexes not matching
+    # Drop the indexes matching
     m.drop([x for x in m.index
-            if x.split()[0] in keep],
+            if x.split()[0] in remove],
            inplace=True)
     # Also, drop the strains that are always NaN
     # as it messes up the following analysis
