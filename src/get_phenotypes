@@ -57,6 +57,9 @@ def get_options():
     parser.add_argument('--table', action='store_true',
                         default=False,
                         help='Table format [Default: plink format]')
+    parser.add_argument('--strains', action='store_true',
+                        default=False,
+                        help='Strains format [Default: plink format]')
     parser.add_argument('--sick', action='store_true',
                         default=False,
                         help='Only sick phenotypes [Default: all phenotypes]')
@@ -103,18 +106,21 @@ if __name__ == "__main__":
         outfile = open(os.path.join(options.outdir,
                                     '%s'%c),
                        'w')
-        if options.table:
-            outfile.write(options.separator.join( ('', c) ) + '\n' )
-        for sample, score in zip(matrix.index,
-                                 matrix.as_matrix()):
-            if not options.binary:
-                if options.table:
-                    outfile.write( options.separator.join( (sample, str(score)) ) + '\n' )
+        if options.strains:
+            outfile.write(options.separator.join(matrix.index) + '\n')
+        else:
+            if options.table:
+                outfile.write(options.separator.join( ('', c) ) + '\n' )
+            for sample, score in zip(matrix.index,
+                                     matrix.as_matrix()):
+                if not options.binary:
+                    if options.table:
+                        outfile.write( options.separator.join( (sample, str(score)) ) + '\n' )
+                    else:
+                        outfile.write( options.separator.join( (sample, sample, str(score)) ) + '\n' )
                 else:
-                    outfile.write( options.separator.join( (sample, sample, str(score)) ) + '\n' )
-            else:
-                if options.table:
-                    outfile.write( options.separator.join( (sample, str(int(score))) ) + '\n' )
-                else:
-                    outfile.write( options.separator.join( (sample, sample, str(int(score))) ) + '\n' )
+                    if options.table:
+                        outfile.write( options.separator.join( (sample, str(int(score))) ) + '\n' )
+                    else:
+                        outfile.write( options.separator.join( (sample, sample, str(int(score))) ) + '\n' )
         outfile.close()
