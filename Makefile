@@ -154,24 +154,18 @@ $(RENAMED): $(EMAP)
 $(RENAMED2): $(RENAMED) $(REMOVED)
 	$(SRCDIR)/remove_conditions $< $(REMOVE) $@
 
-$(RESTRICTED): $(RENAMED2) $(SEQUENCED)
-	$(SRCDIR)/remove_strains $(RENAMED) $(SEQUENCED) $(RESTRICTED)
+$(MERGED): $(AMERGED)
+	$(SRCDIR)/remove_strains $< $(SEQUENCED) $@
 
-$(RESCALED): $(RESTRICTED)
-	$(SRCDIR)/rescale_sscores $(RESTRICTED) > $(RESCALED)
+$(FDR): $(AFDR) $(MERGED) $(PHENODIR) $(BPHENODIR)
+	$(SRCDIR)/remove_strains $< $(SEQUENCED) $@ && \
+	$(SRCDIR)/get_phenotypes $(MERGED) $@ $(PHENODIR) --threshold 0.05 && \
+	$(SRCDIR)/get_phenotypes $(MERGED) $@ $(BPHENODIR) --binary --threshold 0.05
 
-$(MERGED): $(RESCALED)
-	$(SRCDIR)/merge_columns $(RESCALED) > $(MERGED)
+$(FDRBINARY): $(MERGED) $(FDR)
+	$(SRCDIR)/get_binary_matrix $(MERGED) $(FDR) --separator ',' > $(FDRBINARY)
 
-$(FDR): $(MERGED) $(PHENODIR) $(BPHENODIR)
-	$(SRCDIR)/fdr_matrix $(MERGED) $(FDR) && \
-	$(SRCDIR)/get_phenotypes $(MERGED) $(FDR) $(PHENODIR) --threshold 0.05 && \
-	$(SRCDIR)/get_phenotypes $(MERGED) $(FDR) $(BPHENODIR) --binary --threshold 0.05
-
-$(FDRBINARY): $(FDR)
-	$(SRCDIR)/get_binary_matrix $(FDR) --separator ',' > $(FDRBINARY)
-
-$(ARESCALED): $(RENAMED)
+$(ARESCALED): $(RENAMED2)
 	$(SRCDIR)/rescale_sscores $< > $@
 
 $(AMERGED): $(ARESCALED)
@@ -252,7 +246,7 @@ $(MERGEDGENESUNION50): $(DELALLCLUSTERS) $(DELALLGENES50)
 select: $(TIMEPOINTS)
 collect: $(NAMECONVERSION)
 pre-process: $(FIXEDS)
-post-process: $(RESCALED) $(FDR) $(FDRBINARY) $(AFDR)
+post-process: $(MERGED) $(FDR) $(FDRBINARY) $(AFDR)
 deletion: $(DEL) $(DELFDR) $(DELGENES) $(DELALL) $(DELALLFDR) $(DELALLGENES) $(DELALLGENES5) $(DELALLGENES10) $(DELALLGENES50)
 clusters: $(DELALLCLUSTERS) $(CURDIR)/merging.done $(MERGEDGENES) $(MERGEDGENES5) $(MERGEDGENES10) $(MERGEDGENES50) $(MERGEDGENESUNION) $(MERGEDGENESUNION5) $(MERGEDGENESUNION10) $(MERGEDGENESUNION50)
 

@@ -34,8 +34,10 @@ def get_options():
     description = "Transform the FDR matrix into a binary matrix"
     parser = argparse.ArgumentParser(description = description,
                                      prog = 'get_binary_matrix')
-    parser.add_argument('inmatrix', action='store',
-                        help='Input matrix file')
+    parser.add_argument('inmatrix1', action='store',
+                        help='Input matrix file 1')
+    parser.add_argument('inmatrix2', action='store',
+                        help='Input matrix file 2')
     
     parser.add_argument('--separator', action='store',
                         default='\t',
@@ -53,10 +55,13 @@ if __name__ == "__main__":
     options = get_options()
 
     # Read the input matrix
-    m = pd.read_table(options.inmatrix)
-    m.set_index(m.columns[0], inplace=True)
-    
-    m = m[m < 0.05]
+    a = pd.read_table(options.inmatrix1)
+    a.set_index(a.columns[0], inplace=True)
+    f = pd.read_table(options.inmatrix2)
+    f.set_index(f.columns[0], inplace=True)
+    f[np.isnan(a)] = np.nan
+
+    m = a[f < 0.05]
     m[np.invert(np.isnan(m))] = int(1)
     m[np.isnan(m)] = int(0)
     

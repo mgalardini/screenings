@@ -36,8 +36,8 @@ def get_options():
                                      prog = 'remove_strains')
     parser.add_argument('inmatrix', action='store',
                         help='Input matrix file')
-    parser.add_argument('keep', action='store',
-                        help='Strains to keep')
+    parser.add_argument('remove', action='store',
+                        help='Strains to remove')
     parser.add_argument('outmatrix', action='store',
                         help='Output matrix file')
 
@@ -56,11 +56,11 @@ if __name__ == "__main__":
     m.set_index(m.columns[0], inplace=True)
 
     # Read the conversion table
-    keep = {x.rstrip() for x in open(options.keep)}
+    remove = {x.rstrip() for x in open(options.remove)}
 
-    # Drop the indexes not matching
+    # Drop the indexes matching
     m.drop([x for x in m.index
-            if x.split()[0] not in keep],
+            if x.split()[0] in remove],
            inplace=True)
     # Also, drop the strains that are always NaN
     # as it messes up the following analysis
