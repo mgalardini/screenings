@@ -7,7 +7,7 @@ COLOR =
 
 PLATE = 8
 PLATEFILE = $(CURDIR)/plates.tsv
-BATCHDIR = ../../datasets/screens/BATCH6/
+BATCHDIR = $(CURDIR)/BATCH6/
 
 SRCDIR = $(CURDIR)/src
 NOTEBOOKSDIR = $(CURDIR)/notebooks
@@ -57,12 +57,6 @@ AFDR = $(CURDIR)/emap.fdr.all.txt
 
 # Name conversion
 CONVERSION = $(CURDIR)/conditions.csv
-
-# External data
-ROARY = $(CURDIR)/gene_presence_absence.csv
-SNPS = $(CURDIR)/SNPs_matrix.tsv
-SNPSDEL = $(CURDIR)/SNPs_del_matrix.tsv
-SNPSFUNCTIONAL = $(CURDIR)/SNPs_functional_matrix.tsv
 
 # External data: deletion screen
 DELDIR = $(CURDIR)/deletion_screen
