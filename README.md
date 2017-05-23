@@ -22,7 +22,7 @@ Usage
 -----
 
 Colony sizes/colony opacities files, as computed by [Iris](https://github.com/critichu/Iris)
-are needed as inputs (provided in the screenings.tar.gz file).
+are needed as inputs (provided in the batch5.tar.gz and batch6.tar.gz files).
 
 The makefile contains the various bits of the pipeline:
 * `make select` will scan the Iris files and pick the optimal timepoint for each condition and replica
