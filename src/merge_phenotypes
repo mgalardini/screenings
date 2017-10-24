@@ -1,0 +1,49 @@
+#!/usr/bin/env python
+
+def get_options():
+    import argparse
+
+    description = 'Merge phenotypes tables'
+    parser = argparse.ArgumentParser(description=description)
+
+    parser.add_argument('sscores',
+                        help='S-scores file')
+    parser.add_argument('qvalues',
+                        help='Q-values file')
+    
+    parser.add_argument('--fdr',
+                        type=float,
+                        default=0.05,
+                        help='Q-values threshold [Default: 0.05]')
+
+    return parser.parse_args()
+
+if __name__ == "__main__":
+    options = get_options()
+
+    import sys
+    import pandas as pd
+
+    a = pd.read_table(options.sscores, index_col=0)
+    f = pd.read_table(options.qvalues, index_col=0)
+
+    a = a.T.stack()
+    a.name = 's-scores'
+    f = f.T.stack()
+    f.name = 'corrected-p-values'
+
+    v = a.to_frame().join(f.to_frame(), how='outer')
+    v['growth-defect-phenotype'] = [1
+                                    if x < 0 and y < options.fdr
+                                    else 0
+                                    for x,y in v.values]
+
+    v = v.reset_index()
+    v.columns = ['condition',
+                 'strain',
+                 's-scores',
+                 'corrected-p-values',
+                 'growth-defect-phenotype']
+    v.to_csv(sys.stdout,
+             sep='\t',
+             index=False)

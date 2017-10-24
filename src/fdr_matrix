@@ -31,7 +31,7 @@ def get_options():
     import argparse
 
     # create the top-level parser
-    description = "Apply column-wise 0.05 FDR correction"
+    description = "Apply column-wise FDR correction"
     parser = argparse.ArgumentParser(description = description,
                                      prog = 'fdr_matrix')
     parser.add_argument('inmatrix', action='store',
@@ -39,10 +39,9 @@ def get_options():
     parser.add_argument('outmatrix', action='store',
                         help='Output matrix file')
 
-    parser.add_argument('--fdr', action='store',
-                        type=float,
-                        default=.05,
-                        help='FDR threshold [Default: 0.05]')
+    parser.add_argument('--pvals', action='store_true',
+                        default=False,
+                        help='Report uncorrected p-values [Default: apply FDR]')
 
     parser.add_argument('--version', action='version',
                          version='%(prog)s '+__version__)
@@ -93,27 +92,21 @@ if __name__ == "__main__":
     m = pd.read_table(options.inmatrix)
     m.set_index(m.columns[0], inplace=True)
     
-    print('Applying FDR filtering (5%)')
+    print('Applying FDR filtering')
    
     f = {}
     for c in m:
         mz = get_Zscore(m[c].dropna())
         mp = get_sf(mz)
-        mf = correct_pvals(mp)
+        if options.pvals:
+            mf = mp
+        else:
+            mf = correct_pvals(mp)
         mf = pd.Series(mf)
         mf.index = m[c].dropna().index
         f[c] = mf
     mf = pd.DataFrame(f)
 
-    v = mf[mf < options.fdr]
-    blank = set()
-    for gene in mf.index:
-        if v.loc[gene].dropna().shape[0] == 0:
-            blank.add(gene)
-
     # Save the FDR p-values
     mf = mf.reindex_axis(sorted(mf.columns), axis=1)
     mf.to_csv(options.outmatrix, sep='\t')
-
-    print('Blank rows: %d (%.1f%%)'%(len(blank),
-          len(blank)*100.0/len(m.index)))
